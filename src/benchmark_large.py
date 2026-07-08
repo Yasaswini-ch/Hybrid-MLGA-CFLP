@@ -97,6 +97,7 @@ def run_benchmarks():
             "milp_status": m_status,
             "milp_time": m_time,
             "milp_active": m_active,
+            "milp_gap": m_gap,
             "greedy_cost": g_cost,
             "greedy_time": g_time,
             "greedy_active": g_active,
@@ -106,20 +107,22 @@ def run_benchmarks():
             "ga_active": ga_active,
             "ga_gap": ga_gap
         })
-        
+
     # Print the summary table in markdown format
     df = pd.DataFrame(results)
     output_csv_path = os.path.join(base_dir, "..", "docs", "large_benchmark_results.csv")
     df.to_csv(output_csv_path, index=False)
     print(f"Results saved to {output_csv_path}")
-    
+
     print("\n" + "=" * 110)
     print(f"{'FINAL LARGE-SCALE BENCHMARK COMPARISON':^110}")
     print("=" * 110)
-    print("| Dataset | Ground Truth | MILP Cost | MILP Status | MILP Time (s) | Greedy Cost | Greedy Gap (%) | GA Cost | GA Gap (%) |")
-    print("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+    print("NOTE: milp_gap is vs. ground_truth (literature optimum). greedy_gap and ga_gap")
+    print("are vs. milp_cost (the exact/reference solver in this comparison), NOT vs. ground_truth.")
+    print("| Dataset | Ground Truth | MILP Cost | MILP Gap (%) | MILP Status | MILP Time (s) | Greedy Cost | Greedy Gap vs MILP (%) | GA Cost | GA Gap vs MILP (%) |")
+    print("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
     for r in results:
-        print(f"| {r['dataset']} | ${r['ground_truth']:,.2f} | ${r['milp_cost']:,.2f} | {r['milp_status']} | {r['milp_time']:.2f}s | ${r['greedy_cost']:,.2f} | {r['greedy_gap']:.2f}% | ${r['ga_cost']:,.2f} | {r['ga_gap']:.2f}% |")
+        print(f"| {r['dataset']} | ${r['ground_truth']:,.2f} | ${r['milp_cost']:,.2f} | {r['milp_gap']:.2f}% | {r['milp_status']} | {r['milp_time']:.2f}s | ${r['greedy_cost']:,.2f} | {r['greedy_gap']:.2f}% | ${r['ga_cost']:,.2f} | {r['ga_gap']:.2f}% |")
 
 if __name__ == "__main__":
     run_benchmarks()

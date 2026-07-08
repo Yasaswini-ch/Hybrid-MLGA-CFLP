@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 *.pkl
 *.npz
+archive_not_for_submission/
