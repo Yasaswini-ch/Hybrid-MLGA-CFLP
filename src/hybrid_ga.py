@@ -12,10 +12,15 @@ Two Evaluation Modes:
   1. 'pure_surrogate'   — All fitness evaluations use the ML model (zero LP calls).
                           Maximum speed. Suitable for high-quality surrogates (MAPE < 1%).
 
-  2. 'confidence_aware' — ML surrogate by default; falls back to exact LP when:
-                          (a) RF inter-tree uncertainty exceeds a configurable threshold,
-                          or (b) the individual is in the top-k elite candidates.
-                          Best balance of speed and accuracy.
+  2. 'confidence_aware' — ML surrogate predicts a cost for every individual; the
+                          exact LP solver is only invoked to verify that prediction
+                          when it suggests a NEW BEST solution, i.e.
+                          predicted_cost < best_cost_so_far (see _evaluate_individual
+                          and _evaluate_population_batch below). Otherwise the
+                          prediction is trusted directly. Best balance of speed and
+                          accuracy: most of the population is evaluated in
+                          microseconds, while every genuinely promising candidate is
+                          still verified exactly before being trusted.
 
 Warmup Period:
   The first `warmup_fraction` of total generations always use exact LP evaluations,
@@ -77,8 +82,13 @@ class HybridMLGASolver:
             heuristic_ratio: Fraction of population to initialize with heuristic seeding.
             elite_count: Number of elite individuals to carry over.
             mode: 'pure_surrogate' or 'confidence_aware'. Ignored when surrogate is None.
-            uncertainty_threshold_pct: RF uncertainty threshold as % of predicted cost.
-            elite_fraction: Top fraction of population to exact-evaluate in confidence_aware mode.
+            uncertainty_threshold_pct: Accepted for backward compatibility with existing
+                                       callers (e.g. active_learning.py) but currently UNUSED --
+                                       the confidence_aware decision rule is purely
+                                       predicted_cost < best_cost_so_far (see the module
+                                       docstring above), not an uncertainty threshold.
+            elite_fraction: Accepted for backward compatibility but currently UNUSED,
+                            same reason as uncertainty_threshold_pct above.
             warmup_fraction: Fraction of generations that always use exact LP (warmup period).
                              Ignored when surrogate is None (every generation is exact).
             random_seed: Reproducibility seed.
