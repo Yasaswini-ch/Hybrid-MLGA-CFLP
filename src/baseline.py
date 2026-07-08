@@ -173,8 +173,15 @@ class MILPSolver:
         prob.solve(solver)
 
         # 5. Extract results
+        # NOTE: pulp.LpStatus[prob.status] reports "Optimal" whenever CBC returns ANY
+        # integer-feasible solution, even if CBC actually stopped on the time limit
+        # without proving optimality (a known PuLP/CBC status-parsing gap). prob.sol_status
+        # distinguishes this correctly: 1 = proven optimal, 2 = feasible but NOT proven
+        # optimal (i.e. the time limit was hit before the branch-and-bound gap closed).
         status_str = pulp.LpStatus[prob.status]
-        
+        if status_str == "Optimal" and prob.sol_status != pulp.LpSolutionOptimal:
+            status_str = "Time Limit (Feasible, Not Proven Optimal)"
+
         if status_str != "Optimal":
             print(f"[Warning] Solver finished with non-optimal status: {status_str}")
             

@@ -16,12 +16,12 @@ pip install -r requirements.txt
 python src/benchmark_statistical.py
 
 # Check results
-head docs/statistical_benchmark_results_VERIFIED.csv
+head docs/statistical_benchmark_results.csv
 ```
 
 **What you got**:
-- `docs/statistical_benchmark_results_VERIFIED.csv` — Table with GA performance stats
-- `docs/statistical_benchmark_results_VERIFIED.png` — Convergence graph
+- `docs/statistical_benchmark_results.csv` — Table with GA performance stats
+- `docs/statistical_benchmark_results.png` — Convergence graph
 
 ---
 
@@ -99,7 +99,7 @@ print(f"Convergence history: {history['min_cost']}")
 
 **Check**: Are standard deviations zero?
 ```bash
-awk -F',' 'NR > 1 {print $1, "std=" $7}' docs/statistical_benchmark_results_VERIFIED.csv | head -5
+awk -F',' 'NR > 1 {print $1, "std=" $7}' docs/statistical_benchmark_results.csv | head -5
 ```
 
 **Expected**: All std > 0 (e.g., `cap71 std=X.XX` where X.XX > 0)  
@@ -109,7 +109,7 @@ awk -F',' 'NR > 1 {print $1, "std=" $7}' docs/statistical_benchmark_results_VERI
 
 **Check**: Are MILP costs unique per instance?
 ```bash
-awk -F',' 'NR > 1 {print $1, $3}' docs/large_benchmark_results_VERIFIED.csv | sort -u | wc -l
+awk -F',' 'NR > 1 {print $1, $3}' docs/large_benchmark_results.csv | sort -u | wc -l
 ```
 
 **Expected**: 12 different costs  
@@ -141,12 +141,12 @@ python -m py_compile src/baseline.py
 
 # TEST 2: MILP costs are unique (not cached)
 python src/benchmark_large.py
-awk -F',' 'NR > 1 {print $3}' docs/large_benchmark_results_VERIFIED.csv | sort -u | wc -l
+awk -F',' 'NR > 1 {print $3}' docs/large_benchmark_results.csv | sort -u | wc -l
 # Expected: 12
 
 # TEST 3: GA has variation (std dev > 0, not cached)
 python src/benchmark_statistical.py
-awk -F',' 'NR > 1 && $7 > 0' docs/statistical_benchmark_results_VERIFIED.csv | wc -l
+awk -F',' 'NR > 1 && $7 > 0' docs/statistical_benchmark_results.csv | wc -l
 # Expected: 15
 
 # TEST 4: Different seeds produce different results
@@ -213,12 +213,12 @@ A: Depends on your needs:
 - Need speed? → Greedy
 - Need good balance? → GA (recommended, PRIMARY)
 - Need to experiment? → Modular GA
-- Need speedup via ML? → Hybrid ML-GA (must validate surrogate first)
+- Need speedup via ML? → Hybrid ML-GA (`python src/benchmark_hybrid_ga.py` — bootstraps its own training data and surrogate automatically, no pre-trained model needed)
 
 **Q: How long does a benchmark take?**
 - Statistical GA: ~8 minutes (30 runs × 15 instances)
 - Large-scale: ~10 minutes (3 solvers × 12 instances)
-- Hybrid ML-GA: ~5 minutes (if surrogate loaded)
+- Hybrid ML-GA: ~15-20 minutes (bootstrap + train + 10 solve runs × 15 instances)
 
 **Q: What's the difference between ga_solver.py and genetic_algorithm.py?**  
 See [IMPLEMENTATION_ARCHITECTURE.md](IMPLEMENTATION_ARCHITECTURE.md) → Module Reference:

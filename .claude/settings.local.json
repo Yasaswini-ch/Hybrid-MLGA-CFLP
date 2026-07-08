@@ -61,7 +61,18 @@
       "Bash(git commit *)",
       "Bash(cd \"C:\\\\Opensource\\\\CAPL\" && ps aux | grep git | grep -v grep *)",
       "Bash(grep -rln \"verify_parser\\\\|verify_cap_stats\\\\|verify_ga_optimal\\\\|verify_phase2\\\\.py\\\\|verify_data_format\\\\|verify_fix\\\\.py\\\\|verify_bootstrap_mode\\\\|verify_full_loop\\\\|mentor_review\\\\|diagnose_duplicate\\\\|regression_suite_phase2\\\\|test_ga_derived_sampling\\\\|example_ga_derived_workflow\\\\|verify_phase2_cost_comparison\\\\|verify_phase3_adaptive_retraining\\\\|verify_fixed_validation\" README.md docs/*.md)",
-      "Bash(find . -maxdepth 2 -iname \"pytest.ini\" -o -iname \"conftest.py\")"
+      "Bash(find . -maxdepth 2 -iname \"pytest.ini\" -o -iname \"conftest.py\")",
+      "Bash(grep -rn \"C:\\\\\\\\\\\\\\\\Opensource\\\\|C:/Opensource\\\\|/c/Opensource\\\\|C:\\\\\\\\\\\\\\\\Users\" src/*.py)",
+      "Bash(grep -vE \"^\\(os|sys|time|random|typing|json|math|itertools|pickle|dataclasses\\)$\")",
+      "Bash(awk '{print $2}')",
+      "Bash(cd \"C:\\\\Opensource\\\\CAPL\" && stat -c '%y' docs/computational_table.png docs/hybrid_ga_comparison.png docs/cap41_ga_convergence.png docs/cap41_hybrid_convergence.png *)",
+      "Bash(nohup python src/benchmark_large.py)",
+      "Bash(echo \"Started PID $!\")",
+      "Bash(python -c \"from src.parser import CFLPDataset\")",
+      "Bash(grep -i \"warning\\\\|status\\\\|MILP Solver\" /tmp/benchmark_large_log.txt 2>&1 | head -40)",
+      "Bash(python -c \"import pulp; print\\(pulp.LpSolutionOptimal\\)\")",
+      "Bash(echo \"EXIT CODE: $?\")",
+      "Bash(cd \"C:\\\\Opensource\\\\CAPL\" && cat docs/large_benchmark_results.csv 2>&1 *)"
     ]
   }
 }

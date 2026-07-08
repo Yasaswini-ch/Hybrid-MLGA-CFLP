@@ -161,15 +161,15 @@ python src/benchmark_statistical.py
 * **What it outputs**: Prints a formatted statistical markdown table directly to the console and generates:
   * `docs/statistical_benchmark_results.csv` (complete spreadsheet logs)
   * `docs/statistical_benchmark_results.png` (gap performance bar chart)
-  * `docs/computational_table.png` (high-quality dark-themed table rendering)
 * **Execution Time**: ~7.7 minutes (using parallelized solves and UFLP evaluation shortcuts).
 
 ### Step 2: Run the Large-Scale Capacitated Benchmark
-This script runs a comparative analysis of the exact MILP solver, the greedy heuristic, and the classical GA solver on high-dimensional capacitated Beasley benchmarks (`capa1-4` to `capc1-4`):
+This script runs a comparative analysis of the exact MILP solver, the greedy heuristic, and the classical GA solver on high-dimensional capacitated Beasley benchmarks (`capa1-4` to `capc1-4`, 100 facilities × 1000 customers each):
 ```bash
 python src/benchmark_large.py
 ```
-* **What it outputs**: Prints details of cost gaps, facility counts, and runtimes, and generates [docs/large_benchmark_results.csv](file:///c:/Opensource/CAPL/docs/large_benchmark_results.csv).
+* **What it outputs**: Prints details of cost gaps, facility counts, and runtimes, and generates [docs/large_benchmark_results.csv](docs/large_benchmark_results.csv).
+* **Known limitation, stated honestly**: at this scale, the exact MILP solver (CBC, 120s time limit) does not have enough time to *prove* optimality — it returns the best feasible solution found within the limit, which can be substantially worse than the true optimum. `MILPSolver.solve()` correctly reports this via its returned status string (`"Time Limit (Feasible, Not Proven Optimal)"` rather than `"Optimal"`), but `benchmark_large.py` does not currently write that status into the CSV, so the `milp_cost` column should be read as *a time-limited feasible upper bound*, not a proven ground truth, for these particular instances. The Classical GA in this script also uses a deliberately small `pop_size=10, n_gen=10` budget to keep the demo fast; on two of the twelve instances (`capb4`, `capc1`) this was too small to find any feasible solution at all, and the GA returned its internal infeasibility penalty (`1e12`) instead of a real cost. This is a known, visible artifact of the reduced demo budget, not a hidden failure — see the CSV directly.
 
 ### Step 3 (Optional): Train the Surrogate Models
 If you wish to retrain and regenerate the machine learning models (.pkl files) from scratch:
