@@ -59,7 +59,9 @@
       "Bash(git init *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(cd \"C:\\\\Opensource\\\\CAPL\" && ps aux | grep git | grep -v grep *)"
+      "Bash(cd \"C:\\\\Opensource\\\\CAPL\" && ps aux | grep git | grep -v grep *)",
+      "Bash(grep -rln \"verify_parser\\\\|verify_cap_stats\\\\|verify_ga_optimal\\\\|verify_phase2\\\\.py\\\\|verify_data_format\\\\|verify_fix\\\\.py\\\\|verify_bootstrap_mode\\\\|verify_full_loop\\\\|mentor_review\\\\|diagnose_duplicate\\\\|regression_suite_phase2\\\\|test_ga_derived_sampling\\\\|example_ga_derived_workflow\\\\|verify_phase2_cost_comparison\\\\|verify_phase3_adaptive_retraining\\\\|verify_fixed_validation\" README.md docs/*.md)",
+      "Bash(find . -maxdepth 2 -iname \"pytest.ini\" -o -iname \"conftest.py\")"
     ]
   }
 }

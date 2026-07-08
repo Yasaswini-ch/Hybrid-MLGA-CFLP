@@ -57,7 +57,7 @@ When walking through the code files, show them in this logical order:
      * *MILP Solver*: An exact solver using `PuLP` to compute the absolute mathematical optimum.
 3. **The Core GA: `src/genetic_algorithm.py`**
    * *Explanation*: Evolves binary status vectors (1 = open, 0 = closed) using tournament selection, two-point crossover, bit-flip mutations, and elitism (preserving the best answer).
-4. **The Tweaks & Main Run: `src/benchmark_cflp.py`**
+4. **The Tweaks & Main Run: `src/benchmark_statistical.py`**
    * *Explanation*: Integrates our two hybrid improvements:
      * *Combined Seeding*: Populating the starting GA pool with a mix of greedy, randomized, and locally optimized answers to balance speed and diversity.
      * *Actual GA Runs*: Runs the GA 30 times with varying random seeds to produce statistically sound real benchmark results.
@@ -68,7 +68,7 @@ When walking through the code files, show them in this logical order:
 
 ### 1. Capacitated Benchmark (Prints Table 2)
 ```bash
-python src/benchmark_cflp.py
+python src/benchmark_statistical.py
 ```
 * **What Happens**: 
   1. Loads standard capacitated Beasley OR-Library datasets.

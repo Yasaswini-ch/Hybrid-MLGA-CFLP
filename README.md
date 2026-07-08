@@ -92,16 +92,15 @@ CAPL/
 │   ├── genetic_algorithm.py  # Modular Classical GA Solver class
 │   ├── surrogate_model.py    # ML surrogate models for fitness approximation
 │   ├── feature_engineering.py# Encodes binary configurations into numerical features for ML
-│   ├── train_surrogate.py    # Training scripts for ML model serialization
 │   ├── training_pipeline.py  # Generates training data and fits models (supports a fixed external validation set)
 │   ├── hybrid_ga.py          # HybridMLGASolver — can bootstrap its own training data (surrogate=None) and uses predicted-cost-vs-best-solution decision logic
 │   ├── active_learning.py    # Quality-gated adaptive retraining loop (rejects worse models, never adopts them)
 │   ├── dataset_generator.py  # Synthesizes datasets for testing; de-duplicates GA-derived training samples
 │   ├── evaluation_metrics.py # Evaluates ML surrogate MAPE accuracy
-│   ├── benchmark_cflp.py     # Main benchmark script for Capacitated benchmarks (Table 2)
-│   ├── benchmark_large.py    # Main benchmark script for Large-Scale Capacitated benchmarks
-│   ├── benchmark_statistical.py # Classical GA benchmark across all 15 OR-Library instances (30 runs each)
-│   └── benchmark_hybrid_ga.py   # Hybrid ML-GA benchmark across all 15 OR-Library instances (bootstrap + confidence-aware, 10 runs each)
+│   ├── preprocess_orlib.py   # One-time utility that split capa/capb/capc into the capa1-4/capb1-4/capc1-4 variants used by benchmark_large.py
+│   ├── benchmark_statistical.py # Classical GA benchmark across all 15 OR-Library instances (30 runs each) — Table 2 results
+│   ├── benchmark_hybrid_ga.py   # Hybrid ML-GA benchmark across all 15 OR-Library instances (bootstrap + confidence-aware, 10 runs each)
+│   └── benchmark_large.py    # MILP vs. Greedy vs. Classical GA on the split large-scale variants (capa1-4, capb1-4, capc1-4)
 ├── docs/                     # Scientific reports, results spreadsheet (.csv), and graphs (.png)
 │   ├── statistical_benchmark_results.csv  # Classical GA results (Optimal vs GA stats, 15 instances)
 │   ├── hybrid_benchmark_results.csv       # Hybrid ML-GA results on the same 15 instances (fresh, corrected implementation)
