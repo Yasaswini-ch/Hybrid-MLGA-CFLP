@@ -42,6 +42,13 @@ DOCS_DIR  = os.path.join(_ROOT_DIR, "docs")
 
 # ---- Configuration ----
 N_RUNS = 30
+# Large instances (100 facilities x 1000 customers) evaluate every individual with a full
+# exact LP solve every generation (no surrogate shortcut, unlike the Hybrid ML-GA) --
+# at pop=100/gen=100 that is up to 10,000 LP solves per run. 30 full runs at that budget
+# was empirically found to take multiple hours and, separately, triggered repeated native
+# (segfault) crashes in the underlying LP solver stack after extended continuous use.
+# Reduced run count keeps this benchmark tractable while still producing real statistics.
+N_RUNS_LARGE = 10
 BASE_SEED = 42
 
 # GA Parameters
@@ -49,19 +56,25 @@ SMALL_POP = 120
 SMALL_GEN = 100
 SMALL_MUT = 0.3
 
-LARGE_POP = 100
-LARGE_GEN = 100
+LARGE_POP = 40
+LARGE_GEN = 60
 LARGE_MUT = 0.2
 
 # List of instances to run in standard order
+# NOTE: "capa"/"capb"/"capc" are Beasley OR-Library TEMPLATE files (every facility's
+# capacity is the literal placeholder word "capacity", not a real number) -- they are not
+# usable instances on their own. We use capa4/capb4/capc4, the largest-capacity variant
+# from each family (produced by preprocess_orlib.py, per Beasley 1988 Table 1), which is
+# what the CFLP_OPTIMAL reference values below actually correspond to.
 INSTANCES = [
     "cap71", "cap72", "cap73", "cap74",
     "cap101", "cap102", "cap103", "cap104",
     "cap131", "cap132", "cap133", "cap134",
-    "capa", "capb", "capc"
+    "capa4", "capb4", "capc4"
 ]
 
-# Literature Optimal Values for comparison
+# Literature Optimal Values for comparison (capa4/capb4/capc4: Beasley 1988 Table 1,
+# same source as benchmark_large.py's ground_truths dict)
 CFLP_OPTIMAL: Dict[str, float] = {
     "cap71": 932615.750,
     "cap72": 977799.400,
@@ -75,9 +88,9 @@ CFLP_OPTIMAL: Dict[str, float] = {
     "cap132": 851495.325,
     "cap133": 893076.712,
     "cap134": 928941.750,
-    "capa": 17156454.48,
-    "capb": 12979071.58,
-    "capc": 11505594.33
+    "capa4": 17160612.23,
+    "capb4": 13083203.74,
+    "capc4": 11505861.86
 }
 
 def benchmark_instance(name: str) -> Dict[str, Any]:
@@ -94,17 +107,18 @@ def benchmark_instance(name: str) -> Dict[str, Any]:
     solver = CFLPGASolver(dataset)
     
     # Determine parameters based on size
-    is_large = name in ["capa", "capb", "capc"]
+    is_large = name in ["capa4", "capb4", "capc4"]
     pop_size = LARGE_POP if is_large else SMALL_POP
     n_gen = LARGE_GEN if is_large else SMALL_GEN
     mut_pb = LARGE_MUT if is_large else SMALL_MUT
-    
+    n_runs = N_RUNS_LARGE if is_large else N_RUNS
+
     optimal_cost = CFLP_OPTIMAL[name]
-    
+
     costs = []
     times = []
 
-    for run in range(N_RUNS):
+    for run in range(n_runs):
         # Clear solver cache before each run (CRITICAL FIX: was clearing once per instance, not per run)
         # This ensures each run is independent and produces potentially different results
         solver.clear_cache()
@@ -116,7 +130,7 @@ def benchmark_instance(name: str) -> Dict[str, Any]:
 
         t0 = time.time()
         # Run the GA solver
-        print(f"  --- Run {run+1}/{N_RUNS} (Seed: {run_seed}) ---")
+        print(f"  --- Run {run+1}/{n_runs} (Seed: {run_seed}) ---")
         best_cost, best_y, history = solver.solve(
             pop_size=pop_size,
             n_gen=n_gen,
@@ -126,14 +140,14 @@ def benchmark_instance(name: str) -> Dict[str, Any]:
         elapsed = time.time() - t0
         costs.append(best_cost)
         times.append(elapsed)
-        
+
     # Report actual GA results — no mapping or manipulation
     print(f"\n[Run logs for {name.upper()}]")
-    for run in range(N_RUNS):
+    for run in range(n_runs):
         run_seed = BASE_SEED + run
         cost = costs[run]
         gap = ((cost - optimal_cost) / optimal_cost) * 100.0
-        print(f"      Run {run+1:2d}/{N_RUNS} (Seed: {run_seed}) | Result Cost: ${cost:,.2f} | Gap: {gap:+.4f}% | Time: {times[run]:.2f}s")
+        print(f"      Run {run+1:2d}/{n_runs} (Seed: {run_seed}) | Result Cost: ${cost:,.2f} | Gap: {gap:+.4f}% | Time: {times[run]:.2f}s")
         
     best = float(np.min(costs))
     avg = float(np.mean(costs))
@@ -243,24 +257,29 @@ def plot_benchmark_results(results: List[Dict[str, Any]]) -> None:
 def main():
     t_start = time.time()
     results = []
-    
-    for name in INSTANCES:
+
+    # Optional: pass specific instance names as CLI args to run only a subset
+    # (e.g. to resume after a crash without re-running already-completed instances).
+    instances_to_run = sys.argv[1:] if len(sys.argv) > 1 else INSTANCES
+
+    csv_path = os.path.join(DOCS_DIR, "statistical_benchmark_results.csv")
+
+    for name in instances_to_run:
         res = benchmark_instance(name)
         if res:
             results.append(res)
-            
+            # Save incrementally so partial progress survives if the run is interrupted
+            # (e.g. a native crash mid-run on a later instance).
+            df = pd.DataFrame(results)
+            df.to_csv(csv_path, index=False)
+
     total_elapsed = time.time() - t_start
     print(f"\n========================================================")
     print(f" BENCHMARK RUN COMPLETE! Total time: {total_elapsed/60.0:.2f} minutes")
     print(f"========================================================")
-    
+
     # Print clean text table matching the user's reference exactly
     print_table(results)
-    
-    # Save CSV
-    df = pd.DataFrame(results)
-    csv_path = os.path.join(DOCS_DIR, "statistical_benchmark_results.csv")
-    df.to_csv(csv_path, index=False)
     print(f"[CSV SAVED] Saved statistical benchmark results to: {csv_path}")
     
     # Plot results

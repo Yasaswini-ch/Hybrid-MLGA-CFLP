@@ -2,7 +2,21 @@
 
 **Date**: June 16, 2026  
 **Project**: Hybrid ML-GA Solver for Capacitated Facility Location Problem (CFLP)  
-**Status**: ✅ COMPLETE - Research-Grade, Fully Documented, All Bugs Fixed  
+**Status**: ✅ COMPLETE - Research-Grade, Fully Documented, All Bugs Fixed (as of this document's date)
+
+> **Update (final pre-submission audit, July 2026) — important correction:** a later,
+> separate audit found that **Bug 1 below (MILP transport cost / demand division)
+> was misdiagnosed** — the division was actually correct for this dataset format,
+> and removing it (as this document's "fix" describes) made large-instance MILP
+> results dramatically worse, not better. This has been reverted; see
+> [BUG_FIXES_AND_CORRECTIONS.md](BUG_FIXES_AND_CORRECTIONS.md)'s Bug 1 section for
+> full evidence. The same audit also found 3 further real bugs beyond the 6
+> documented here — a data-corruption bug in the OR-Library template parser
+> (`capa`/`capb`/`capc`), a native-crash bug in the Classical GA's large-instance
+> parallel evaluator, and a MILP routing cross-validation gap. All were fixed and
+> all affected benchmarks re-run. See `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md` and
+> Chapter 16 of `docs/CFLP_Complete_Project_Guide.md` for the complete, current,
+> and correct picture — this document reflects the state as of the June audit only.
 
 ---
 
@@ -217,12 +231,12 @@ python -m py_compile src/baseline.py src/ga_solver.py
 
 # MILP results are unique
 python src/benchmark_large.py
-awk -F',' 'NR > 1 {print $3}' docs/large_benchmark_results_VERIFIED.csv | sort -u | wc -l
+awk -F',' 'NR > 1 {print $3}' docs/large_benchmark_results.csv | sort -u | wc -l
 # Expected: 12 (all different costs)
 
 # GA has variance
 python src/benchmark_statistical.py
-awk -F',' 'NR > 1 && $7 > 0' docs/statistical_benchmark_results_VERIFIED.csv | wc -l
+awk -F',' 'NR > 1 && $7 > 0' docs/statistical_benchmark_results.csv | wc -l
 # Expected: 15 (all have std > 0)
 
 # No divide-by-demand bug

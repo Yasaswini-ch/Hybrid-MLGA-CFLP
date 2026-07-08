@@ -2,77 +2,111 @@
 
 **Date**: June 16, 2026  
 **Audit Performed**: Forensic review of hybrid ML-GA CFLP solver  
-**Status**: All critical bugs fixed and verified  
+**Status**: All 6 bugs below fixed and verified as of this document's original date.
 
----
+> **Update (final pre-submission audit, July 2026) — important correction:** A later,
+> separate audit found that **Bug 1's original diagnosis and fix below were
+> themselves wrong** and have been reverted — see the correction note at the start
+> of the Bug 1 section for the full evidence. The June audit assumed
+> `transport_costs[j,i]` was a per-unit shipping rate; it is actually the flat
+> total cost of fully serving a customer's whole demand from one facility in this
+> dataset format, and dividing by demand (which this document originally labeled
+> "the bug") was correct all along. Three further, unrelated bugs were also found
+> and fixed: a data-corruption bug in the OR-Library template parser
+> (`capa`/`capb`/`capc`), a native-crash bug in the Classical GA's large-instance
+> parallel evaluator, and a MILP routing cross-validation gap. See
+> `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md` and Chapter 16 of
+> `docs/CFLP_Complete_Project_Guide.md` for the full, current, and correct story —
+> read those alongside this document, not instead of it.
 
 ## Executive Summary
 
-This document details **6 critical and medium-severity bugs** discovered during a comprehensive code audit, their root causes, fixes applied, and verification procedures. All bugs have been corrected in the current codebase.
+This document details **6 critical and medium-severity bugs** discovered during a comprehensive code audit, their root causes, fixes applied, and verification procedures. All 6 were corrected in the codebase at the time. A later audit found that Bug 1's fix was itself wrong and has been reverted, and found 3 further issues beyond this document's original scope — see the update note above.
 
 ---
 
-## Bug 1: MILP Objective Function — Critical
+## Bug 1: MILP Objective Function — Critical (see important correction below)
+
+> **This entire section's original diagnosis was itself wrong, and the "fix" it
+> describes was reverted by the final pre-submission audit (July 2026).** The
+> original June audit assumed `transport_costs[j, i]` was a *per-unit* shipping
+> rate and that dividing it by demand was a bug. Direct evidence shows the
+> opposite: in this OR-Library ("cap"-format) dataset, `transport_costs[j, i]` is
+> the **flat total cost to fully serve customer j's entire demand from facility
+> i**, not a per-unit rate. Proof: `cost_calculator.py::calculate_total_cost()` —
+> the cost formula used everywhere else in this project (GA, Greedy, and the
+> `CFLPFitnessEvaluator` that both of those rely on) — divides the absolute flow
+> by demand before multiplying by `transport_costs`, i.e. it uses the *fraction*
+> of a customer's demand served by each facility, exactly like the "incorrect"
+> code below. A direct scale check confirms it: for `cap71`, `transport_costs[0,0]
+> = $6,739.73` for a customer with demand 146; if that were a true per-unit rate,
+> fully serving just that one customer from one facility would cost ~$984,000 —
+> comparable to the *entire instance's* published optimal cost of $932,615.75.
+> Removing the division (as this section originally recommended) caused the MILP
+> to solve a formulation roughly `demand[j]`-times too expensive per customer,
+> which is why CBC's "provably optimal" solutions on the large instances opened
+> far more facilities than necessary and cost 4-20x more than a simple
+> Greedy/GA solution — CBC's proof was internally consistent, it was just
+> proving optimality for the *wrong objective*. The division has been restored
+> in `src/baseline.py`, with a code comment documenting all three pieces of
+> evidence so this mistake cannot silently recur. Everything below this note is
+> kept as the original (incorrect) analysis, for historical record.
 
 ### Location
 **File**: `src/baseline.py`  
 **Line**: 154-155  
 **Component**: `MILPSolver.solve()` method
 
-### The Bug
+### The Bug (as originally, incorrectly, diagnosed)
 
 ```python
-# INCORRECT (Original Code)
+# Believed INCORRECT at the time (in fact this was the correct formula)
 pulp.lpSum((self.dataset.transport_costs[j, i] / self.dataset.demands[j]) * x[j, i] 
            for j in range(self.num_customers) for i in range(self.num_facilities) if self.dataset.demands[j] > 0)
 ```
 
-The transport costs are **divided by demand**, which is mathematically incorrect for the CFLP.
+### Why It Was Believed Wrong (incorrect reasoning, kept for record)
 
-### Why It's Wrong
+The June audit assumed `c_ij` was a per-unit transportation cost and `x_ij` was
+absolute flow, so the objective should be `Σ c_ij * x_ij` directly with no
+division. This reasoning would be correct *if* `transport_costs` were a
+per-unit rate — but it isn't, in this dataset (see the correction note above).
 
-In CFLP, the objective function is:
-```
-Z = Σ f_i * y_i + Σ Σ c_ij * x_ij
-```
-
-Where:
-- `c_ij` = unit transportation cost from facility i to customer j
-- `x_ij` = flow (quantity) from facility i to customer j
-
-The correct formulation multiplies unit costs by flow directly. Dividing the cost by demand distorts the problem.
-
-**Impact**: 
-- Customers with demand D₁ = 100 have 1/100 the effective transportation cost per unit compared to customers with D₂ = 1
-- MILP solver produces mathematically incorrect solutions
-- All large-scale benchmark comparisons using MILP results are invalid
-
-### The Fix
+### The Change That Was Made (and has since been reverted)
 
 ```python
-# CORRECT (Fixed Code)
+# What the June audit changed it to (since reverted -- this was wrong)
 pulp.lpSum(self.dataset.transport_costs[j, i] * x[j, i]
            for j in range(self.num_customers) for i in range(self.num_facilities))
 ```
 
-Remove the division by demand and the conditional check.
+### Current, Correct Code
+
+```python
+demands_safe = np.where(self.dataset.demands > 0, self.dataset.demands, 1.0)
+prob += (
+    pulp.lpSum(self.dataset.fixed_costs[i] * y[i] for i in range(self.num_facilities)) +
+    pulp.lpSum((self.dataset.transport_costs[j, i] / demands_safe[j]) * x[j, i]
+                for j in range(self.num_customers) for i in range(self.num_facilities))
+)
+```
 
 ### Verification
 
-**Test**: Run `benchmark_large.py` and examine `large_benchmark_results.csv`
-
-**Expected Behavior** (After Fix):
-- Each instance (capa1, capa2, capa3, capa4) has a **different** MILP cost
-- Before fix: all identical (314581502.39)
-- After fix: distinct values (e.g., capa1=19.2M, capa2=18.4M, capa3=17.8M, capa4=17.2M)
-
-**How to Verify**:
+**Test**: Run `python src/baseline.py`-style direct solve on `cap71` (known optimal:
+$932,615.75) and confirm an exact match:
 ```bash
-python src/benchmark_large.py > results_fixed.txt
-cat docs/large_benchmark_results_VERIFIED.csv | grep "milp_cost" | sort | uniq | wc -l
-# Should output: 12 (all instances have different costs)
-# Before fix would output: 3 (all instances within each series identical)
+python -c "
+import sys; sys.path.insert(0, 'src')
+from parser import CFLPDataset
+from baseline import MILPSolver
+d = CFLPDataset('data/raw/cap71.txt')
+cost, y, x, status = MILPSolver(d).solve(timeout_sec=60)
+print(cost, status)  # Expect: 932615.75 Optimal
+"
 ```
+This was run during the final audit and produced an **exact** match
+(`932615.75`), confirming the corrected formula is right.
 
 ---
 
@@ -141,12 +175,12 @@ Move `solver.clear_cache()` **inside the loop**, before each solve.
 ```bash
 # Run 1
 python src/benchmark_statistical.py > run1.log
-cat docs/statistical_benchmark_results_VERIFIED.csv | tail -15 | awk -F',' '{print $1, $6}' > stats1.txt
+cat docs/statistical_benchmark_results.csv | tail -15 | awk -F',' '{print $1, $6}' > stats1.txt
 
 # Run 2 (different BASE_SEED)
 sed -i 's/BASE_SEED = 42/BASE_SEED = 99/g' src/benchmark_statistical.py
 python src/benchmark_statistical.py > run2.log
-cat docs/statistical_benchmark_results_VERIFIED.csv | tail -15 | awk -F',' '{print $1, $6}' > stats2.txt
+cat docs/statistical_benchmark_results.csv | tail -15 | awk -F',' '{print $1, $6}' > stats2.txt
 
 # Compare standard deviations
 diff stats1.txt stats2.txt
@@ -387,7 +421,7 @@ After applying all fixes, run these tests to confirm correctness:
 ```bash
 python src/benchmark_large.py
 # Check: All 12 instances have different MILP costs (not groups of 4 identical)
-grep "milp_cost" docs/large_benchmark_results_VERIFIED.csv | sort | uniq | wc -l
+grep "milp_cost" docs/large_benchmark_results.csv | sort | uniq | wc -l
 # Expected output: 12 (all different)
 ```
 
@@ -395,7 +429,7 @@ grep "milp_cost" docs/large_benchmark_results_VERIFIED.csv | sort | uniq | wc -l
 ```bash
 python src/benchmark_statistical.py
 # Check: Standard deviation > 0 for all 15 instances
-awk -F',' '$6 > 0 {print $1, $6}' docs/statistical_benchmark_results_VERIFIED.csv
+awk -F',' '$6 > 0 {print $1, $6}' docs/statistical_benchmark_results.csv
 # Expected: All rows have std > 0 (no zeros)
 ```
 
@@ -409,12 +443,12 @@ python -m py_compile src/baseline.py src/ga_solver.py src/benchmark_statistical.
 ```bash
 # Run 1 with seed 42
 python src/benchmark_statistical.py
-cp docs/statistical_benchmark_results_VERIFIED.csv results_seed42.csv
+cp docs/statistical_benchmark_results.csv results_seed42.csv
 
 # Run 2 with seed 99 (modify BASE_SEED)
 sed -i 's/BASE_SEED = 42/BASE_SEED = 99/g' src/benchmark_statistical.py
 python src/benchmark_statistical.py  
-cp docs/statistical_benchmark_results_VERIFIED.csv results_seed99.csv
+cp docs/statistical_benchmark_results.csv results_seed99.csv
 
 # Compare
 diff results_seed42.csv results_seed99.csv | head -20

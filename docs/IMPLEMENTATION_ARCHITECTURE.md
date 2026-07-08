@@ -49,7 +49,7 @@ All instances from **Beasley's OR-Library** (standard benchmark suite):
 | cap7x | 16 | 50 | cap71, cap72, cap73, cap74 |
 | cap10x | 25 | 50 | cap101, cap102, cap103, cap104 |
 | cap13x | 50 | 150 | cap131, cap132, cap133, cap134 |
-| capa,b,c | 100 | 1000 | capa, capb, capc |
+| capa,b,c | 100 | 1000 | capa4, capb4, capc4 (the bare `capa`/`capb`/`capc` files are unfilled Beasley templates and cannot be used directly — see `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md`) |
 
 ---
 
@@ -161,43 +161,57 @@ best_cost, best_y, history = ga_solver.solve(
 - Testing custom operators
 - Comparison studies
 
-### Approach 5: Hybrid ML+GA (REQUIRES VALIDATION)
+### Approach 5: Hybrid ML+GA (VALIDATED — see Chapter 16 of the Complete Project Guide)
 
 **Solver**: `src/hybrid_ga.py` → `HybridMLGASolver` class  
-**Status**: Implemented but NOT thoroughly tested; requires surrogate model validation  
+**Status**: Fully implemented, tested end-to-end, and benchmarked on all 15 OR-Library
+instances (`docs/hybrid_benchmark_results.csv`, `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md`).  
 **Concept**: Replace expensive LP fitness evaluations with fast ML predictions
+
+**No pre-trained model is required to get started** — pass `surrogate=None` for
+**bootstrap mode**, which runs like a normal exact-LP GA while logging every
+`(chromosome, cost)` pair it evaluates. That log becomes the surrogate's first
+training dataset, resolving what used to be a circular dependency (you needed a
+trained model to run the GA, but needed the GA to run to get training data).
 
 **Modes**:
 1. **pure_surrogate**: All fitness from ML (fastest, riskiest)
-2. **confidence_aware**: ML by default, LP fallback if uncertain (recommended)
+2. **confidence_aware**: trust the surrogate's prediction by default; only verify
+   with the real LP solver when the predicted cost is **lower than the best solution
+   found so far** (a potential new best) — this is the corrected decision rule,
+   confirmed by direct measurement of every prediction made during a real run.
 
 **Requirements**:
-- Pre-trained surrogate model (Random Forest, Gradient Boosting, or XGBoost)
-- Surrogate accuracy: MAPE < 2% (warn if > 2%, skip if > 5%)
-- Feature engineering to convert chromosomes to ML features
+- No pre-trained model needed (see bootstrap mode above)
+- Feature engineering to convert chromosomes to ML features (handled automatically)
 
 **When to Use**:
-- When speedup from ML-based evaluation is critical
-- Only after validating surrogate accuracy
-- Testing active learning strategies
+- When speedup from ML-based evaluation is critical, and the instance is small/medium
+  (see `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md` — on the 3 largest OR-Library
+  instances the Classical GA currently outperforms this approach; the gap and its
+  root cause are documented there, not hidden)
+- Testing active learning strategies (`src/active_learning.py`, quality-gated —
+  a retrained surrogate is only adopted if it scores at least as well as the best
+  model seen so far on a fixed validation set)
 
 **Code Entry Point**:
 ```python
-from src.hybrid_ga import HybridMLGASolver
-from src.surrogate_model import CFLPSurrogateModel
+from src.hybrid_ga import HybridMLGASolver, extract_training_data_from_ga
+from src.training_pipeline import SurrogateTrainingPipeline
 
-# Load pre-trained surrogate
-surrogate = CFLPSurrogateModel.load("data/processed/surrogate_random_forest.pkl")
+# Stage 1: bootstrap -- no pre-trained model needed
+bootstrap_ga = HybridMLGASolver(dataset=dataset, surrogate=None)
+result = bootstrap_ga.solve()
+X, y = extract_training_data_from_ga(result, dataset=dataset)
 
-# Create hybrid solver
-hybrid = HybridMLGASolver(
-    dataset=dataset,
-    surrogate=surrogate,
-    mode="confidence_aware",
-    uncertainty_threshold_pct=5.0
-)
+# Stage 2: train a surrogate on the GA's own data
+pipeline = SurrogateTrainingPipeline(dataset=dataset, corpus_path=corpus_path, model_save_dir=model_dir)
+trained = pipeline.run(model_types=("random_forest",))
+surrogate = trained["random_forest"]["surrogate"]
 
-best_cost, best_y = hybrid.solve(pop_size=100, n_generations=100)
+# Stage 3: solve with the trained surrogate
+hybrid = HybridMLGASolver(dataset=dataset, surrogate=surrogate, mode="confidence_aware")
+result = hybrid.solve()
 ```
 
 ---
@@ -512,8 +526,8 @@ python src/benchmark_statistical.py
 
 **Output**:
 - Console: Formatted table with statistics
-- File: `docs/statistical_benchmark_results_VERIFIED.csv`
-- File: `docs/statistical_benchmark_results_VERIFIED.png`
+- File: `docs/statistical_benchmark_results.csv`
+- File: `docs/statistical_benchmark_results.png`
 
 **Expected Runtime**: ~8 minutes
 
@@ -541,7 +555,7 @@ python src/benchmark_large.py
 
 **Output**:
 - Console: Comparison table
-- File: `docs/large_benchmark_results_VERIFIED.csv`
+- File: `docs/large_benchmark_results.csv`
 
 **Expected Runtime**: ~10 minutes
 
@@ -550,25 +564,26 @@ python src/benchmark_large.py
 - **GA Gap**: How much worse GA is vs. MILP (%)
 - **GA Time**: Seconds to solution
 
-### Hybrid ML-GA Benchmark (OPTIONAL)
+### Hybrid ML-GA Benchmark
 
-**File**: `src/benchmark_hybrid.py` (if created)
+**File**: `src/benchmark_hybrid_ga.py`
 
 **What It Does**:
-- Compares three GA modes:
-  1. Pure GA (baseline)
-  2. Pure Surrogate (fast, risky)
-  3. Confidence-Aware (balanced)
-- Measures speedup and accuracy
+- Runs the full Hybrid ML-GA pipeline on all 15 OR-Library instances: bootstrap mode
+  generates its own training data, trains a Random Forest surrogate, then solves 10
+  times per instance using the corrected confidence-aware decision rule.
+- Directly comparable, column-for-column, with `docs/statistical_benchmark_results.csv`
+  (the Classical GA's results).
 
 **Command**:
 ```bash
-python src/benchmark_hybrid.py
+python src/benchmark_hybrid_ga.py
 ```
 
 **Output**:
-- Console: Comparison of speedups
+- Console: per-instance Best / Average / Worst costs and gaps
 - File: `docs/hybrid_benchmark_results.csv`
+- See `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md` for the full analysis
 
 ---
 
@@ -579,9 +594,23 @@ python src/benchmark_hybrid.py
 - **Mitigation**: Always validate MAPE < 2% before using
 - **Solution**: Use confidence-aware mode with LP fallback
 
-### Issue 2: MILP Timeout on Large Instances
-- **Problem**: MILP solver hits timeout (120s) on instances with m=100
-- **Solution**: Treat timeout results as lower bounds (not optimal)
+### Issue 2: MILP Objective Formula (FIXED) and Expected Timeout on Large Instances
+- **Was a real bug**: the MILP objective multiplied `transport_costs[j,i]` directly by
+  absolute flow, but this dataset format defines `transport_costs[j,i]` as the flat
+  total cost of fully serving a customer's whole demand from one facility, not a
+  per-unit rate (same convention used by `cost_calculator.py`, the GA, and the Greedy
+  solver, which all divide flow by demand first). This made CBC solve a formulation
+  up to ~demand-times too expensive per customer, producing "provably optimal"
+  solutions that opened far more facilities than necessary and cost 4-20x too much.
+  **Fixed** by restoring the division in `src/baseline.py`; verified with an exact
+  match against `cap71`'s published optimum. See `BUG_FIXES_AND_CORRECTIONS.md`'s Bug 1.
+- **Remaining, expected (not a bug)**: with the corrected objective, CBC still cannot
+  *prove* optimality within its 180s time limit on the 100-facility instances (100,000+
+  continuous routing variables) — `MILPSolver.solve()` reports this honestly as
+  `"Time Limit (Feasible, Not Proven Optimal)"` rather than falsely claiming
+  `"Optimal"`. Even time-limited, MILP is consistently the closest of the three methods
+  to the published ground truth (1-20% gap, vs. 4-16% for Classical GA and 17-54% for
+  Greedy) — see Chapter 12 of `docs/CFLP_Complete_Project_Guide.md` for the full table.
 
 ### Issue 3: Population Diversity Loss
 - **Problem**: GA converges to local optimum, missing global optimum
@@ -595,6 +624,21 @@ python src/benchmark_hybrid.py
 ### Issue 5: Cache Side Effects (FIXED)
 - **Was**: Fitness cache persisted across runs, causing zero variance
 - **Now**: Cache cleared between runs (Fixed in Bug 2)
+
+### Issue 6: OR-Library Template Files Silently Corrupted (FIXED)
+- **Was**: `capa.txt`/`capb.txt`/`capc.txt` are unfilled Beasley templates (capacity =
+  literal text `"capacity"`); `parser.py` used to silently substitute a near-infinite
+  placeholder number instead of erroring, corrupting 3 of 15 headline benchmark
+  instances into an artificially uncapacitated problem.
+- **Now**: `parser.py` raises a clear error naming the correct file to use instead
+  (`capa4`/`capb4`/`capc4`, produced by `preprocess_orlib.py`). All benchmarks were
+  switched to the correct files and re-run.
+
+### Issue 7: ThreadPool Native Crashes on Large Instances (FIXED)
+- **Was**: `ga_solver.py` used a `ThreadPool` to parallelize fitness evaluation for
+  instances with >50 facilities, which reliably crashed with SIGSEGV — SciPy's
+  `linprog`/HiGHS is not thread-safe for concurrent calls sharing one process.
+- **Now**: fitness evaluation is sequential for all instance sizes; slower but stable.
 
 ---
 

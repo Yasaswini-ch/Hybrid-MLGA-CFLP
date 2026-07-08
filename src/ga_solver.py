@@ -204,13 +204,17 @@ class CFLPGASolver:
                 - history (Dict[str, Any]): Dictionary containing evolution history for plotting.
         """
         start_time = time.time()
-        
-        # Use a thread pool for parallel evaluations on large instances
+
+        # NOTE: A ThreadPool-based parallel evaluation path used to be enabled here for
+        # instances with >50 facilities. It reliably caused native segmentation faults
+        # (confirmed by direct testing: fresh, isolated processes crashed with SIGSEGV
+        # specifically and only on 100-facility instances, never on <=50-facility ones,
+        # even at drastically reduced population/generation budgets). SciPy's linprog
+        # (HiGHS backend) and sparse matrix construction are not guaranteed thread-safe;
+        # concurrent calls from multiple ThreadPool worker threads sharing the same
+        # process/native library state corrupted memory under large-instance workloads.
+        # Sequential evaluation is slower but correct.
         pool = None
-        if self.num_facilities > 50:
-            from multiprocessing.pool import ThreadPool
-            pool = ThreadPool()
-            self.toolbox.register("map", pool.map)
         
         # Create initial population
         pop = self.toolbox.population(n=pop_size)

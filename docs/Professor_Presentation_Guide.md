@@ -55,7 +55,7 @@ When walking through the code files, show them in this logical order:
    * *Explanation*: Implements two benchmarks to evaluate our GA:
      * *Greedy Solver*: A fast heuristic that opens warehouses based on cost-efficiency ratio and fills them greedily.
      * *MILP Solver*: An exact solver using `PuLP` to compute the absolute mathematical optimum.
-3. **The Core GA: `src/genetic_algorithm.py`**
+3. **The Core GA: `src/ga_solver.py`** (the primary, benchmarked implementation — `src/genetic_algorithm.py` is a separate, more modular alternative implementation not used by the main benchmark scripts)
    * *Explanation*: Evolves binary status vectors (1 = open, 0 = closed) using tournament selection, two-point crossover, bit-flip mutations, and elitism (preserving the best answer).
 4. **The Tweaks & Main Run: `src/benchmark_statistical.py`**
    * *Explanation*: Integrates our two hybrid improvements:
@@ -97,8 +97,8 @@ python src/benchmark_large.py
 * **Q: Why are there so many python files instead of one giant script?**
   * *A: Separation of concerns. Each file has one single responsibility. This is production-grade software engineering—making the code modular, readable, reusable, and easy to unit-test.*
 * **Q: Why does the GA for `cap71-134` have a Standard Deviation of exactly `0.00`?**
-  * *A: Because these are small-scale instances. Our hybrid GA combined with the local search polisher successfully finds the absolute mathematically optimal configuration on every single run. We cleaned up decimal rounding noise to show the true standard deviation of 0.00.*
-* **Q: Why do `capa`, `capb`, and `capc` have standard deviations?**
-  * *A: Genetic Algorithms are stochastic (random) solvers. In large-scale high-dimensional spaces, some variation across runs is expected. It is scientifically honest for the runs to vary slightly, but in our best runs we hit the absolute literature optimum.*
+  * *A: Because these are small-scale instances (16–50 facilities), the GA reliably converges to the exact same optimal configuration on every one of the 30 runs. The raw CSV shows tiny values like `1.2e-14` instead of a literal `0.0` for some instances — that's ordinary floating-point arithmetic noise from repeated identical LP solves, not a real difference in cost, which is why the printed table rounds it to `0.00`.*
+* **Q: Why do `capa4`, `capb4`, and `capc4` have standard deviations, and why is their gap higher than the smaller instances?**
+  * *A: Genetic Algorithms are stochastic (random) solvers, and in large-scale high-dimensional spaces (100 facilities, 1000 customers) some variation across runs is expected. It is scientifically honest to report that variation rather than hide it. On these three largest instances our best runs land 1.9%–4.7% above the literature optimum, not exactly at it — we investigated why directly (see `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md`) rather than assume, and it comes down to the reduced run budget needed to keep runtime practical at this scale once a real thread-safety bug in the parallel evaluator was fixed.*
 * **Q: How did the standard benchmark datasets get onto my computer?**
   * *A: The AI assistant automatically executed a download script at the start of the project to fetch all 52 dataset files directly from John Beasley's official OR-Library server (Brunel University) and saved them inside the `data/raw/` folder to build a self-contained workspace.*

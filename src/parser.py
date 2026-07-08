@@ -46,10 +46,21 @@ class CFLPDataset:
         with open(self.file_path, 'r') as file:
             content = file.read()
             
-        # Dynamically replace 'capacity' placeholder with correct values
+        # Beasley's OR-Library distributes 'capa'/'capb'/'capc' as TEMPLATE files: every
+        # facility's capacity is the literal placeholder word 'capacity', meant to be
+        # substituted with a real numeric value to produce a concrete instance (e.g. via
+        # preprocess_orlib.py, which produces capa1.txt..capa4.txt with capacities
+        # 8000/10000/12000/14000). A bare template file has no valid, well-defined capacity
+        # of its own -- silently substituting an arbitrary placeholder number here would
+        # produce a fake instance instead of a real one. Fail loudly instead.
         if 'capacity' in content:
-            name_lower = self.name.lower()
-            content = content.replace('capacity', '999999999.0')
+            raise ValueError(
+                f"'{self.file_path}' still contains the literal 'capacity' placeholder text. "
+                f"This is a Beasley OR-Library TEMPLATE file, not a usable instance -- it has no "
+                f"real capacity value. Use one of its instantiated variants instead "
+                f"(e.g. capa1.txt/capa2.txt/capa3.txt/capa4.txt for capa.txt), or run "
+                f"preprocess_orlib.py to generate them if they don't exist."
+            )
             
         # Split content by any whitespace (spaces, tabs, newlines) and filter out empty strings
         tokens = content.split()

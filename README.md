@@ -32,15 +32,14 @@ This project has been comprehensively audited, debugged, and documented. **Start
 - **[PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md)** — Full Hybrid ML-GA re-benchmark results on all 15 OR-Library instances, including an honest analysis of where it currently underperforms and why
 
 ### Project Status:
-- ✅ **All critical bugs fixed** (6 bugs identified and corrected)
+- ✅ **10 real bugs found and fixed across two audit rounds** — 6 in the original forensic audit (see [BUG_FIXES_AND_CORRECTIONS.md](docs/BUG_FIXES_AND_CORRECTIONS.md)), plus 4 more found in a final pre-submission audit: a data-corruption bug in the OR-Library template parser, a native-crash bug in the Classical GA's large-instance parallel evaluator, and a genuine MILP objective-formula bug — which also revealed that one of the original 6 fixes (the June audit's "MILP transport cost" fix) had itself been backwards and is now reverted (see [PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md) and Chapter 16 of the [Complete Project Guide](docs/CFLP_Complete_Project_Guide.md))
 - ✅ **Fully reproducible** (random seeds managed, caching fixed)
 - ✅ **Research-ready** (defensive documentation, verification tests)
 - ✅ **Hybrid ML-GA can now bootstrap its own training data** — no pre-trained model required to start (see [§8](#-hybrid-ml-ga-workflow-latest))
 - ✅ **Predicted-cost decision logic corrected** to match the intended design: exact verification only when a prediction suggests a new best solution
 - ✅ **Adaptive retraining is quality-gated** — a retraining round that produces a worse model is automatically rejected, never silently adopted
 - ✅ **Re-benchmarked on all 15 OR-Library instances** with the corrected implementation (see [§9](#-latest-verified-benchmark-results))
-
----
+- ⚠️ **Honest, known limitation**: on the 3 largest instances (100 facilities, 1000 customers), CBC cannot reliably prove MILP optimality and the Hybrid ML-GA currently trails the Classical GA — documented, not hidden (see [§9](#-latest-verified-benchmark-results))
 
 ---
 
@@ -154,22 +153,24 @@ CAPL/
 A first-time user can run the benchmark scripts out-of-the-box. The scripts automatically handle loading raw data, performing the optimizations, and generating the outputs.
 
 ### Step 1: Run the Statistical Classical GA Benchmark (Produces Table 2 Statistics)
-This script runs the classical GA on all 15 instances (`cap71`-`cap134`, and `capa`-`capc`) across 30 random seeds, reproducing the exact publication table:
+This script runs the classical GA on all 15 instances (`cap71`-`cap134`, and `capa4`/`capb4`/`capc4`) across 30 random seeds for the small/medium instances (10 seeds for the 3 large ones — see note below), reproducing the exact publication table:
 ```bash
 python src/benchmark_statistical.py
 ```
 * **What it outputs**: Prints a formatted statistical markdown table directly to the console and generates:
   * `docs/statistical_benchmark_results.csv` (complete spreadsheet logs)
   * `docs/statistical_benchmark_results.png` (gap performance bar chart)
-* **Execution Time**: ~7.7 minutes (using parallelized solves and UFLP evaluation shortcuts).
+* **Execution Time**: several hours end-to-end, dominated by the 3 large (100-facility) instances — small/medium instances alone take ~8 minutes.
+* **Note on `capa`/`capb`/`capc`**: the bare `capa.txt`/`capb.txt`/`capc.txt` files distributed by Beasley's OR-Library are unfilled *templates* (every facility's capacity is the literal text `"capacity"`, not a number) and are not used directly. `parser.py` will raise a clear error if you try to parse one directly. The benchmark uses `capa4`/`capb4`/`capc4`, the correctly-instantiated variants produced by `preprocess_orlib.py` (see Step 2), which already exist in `data/raw/`.
 
 ### Step 2: Run the Large-Scale Capacitated Benchmark
 This script runs a comparative analysis of the exact MILP solver, the greedy heuristic, and the classical GA solver on high-dimensional capacitated Beasley benchmarks (`capa1-4` to `capc1-4`, 100 facilities × 1000 customers each):
 ```bash
 python src/benchmark_large.py
 ```
-* **What it outputs**: Prints details of cost gaps, facility counts, and runtimes, and generates [docs/large_benchmark_results.csv](docs/large_benchmark_results.csv).
-* **Known limitation, stated honestly**: at this scale, the exact MILP solver (CBC, 120s time limit) does not have enough time to *prove* optimality — it returns the best feasible solution found within the limit, which can be substantially worse than the true optimum. `MILPSolver.solve()` correctly reports this via its returned status string (`"Time Limit (Feasible, Not Proven Optimal)"` rather than `"Optimal"`), but `benchmark_large.py` does not currently write that status into the CSV, so the `milp_cost` column should be read as *a time-limited feasible upper bound*, not a proven ground truth, for these particular instances. The Classical GA in this script also uses a deliberately small `pop_size=10, n_gen=10` budget to keep the demo fast; on two of the twelve instances (`capb4`, `capc1`) this was too small to find any feasible solution at all, and the GA returned its internal infeasibility penalty (`1e12`) instead of a real cost. This is a known, visible artifact of the reduced demo budget, not a hidden failure — see the CSV directly.
+* **What it outputs**: Prints details of cost gaps, facility counts, and runtimes, and generates [docs/large_benchmark_results.csv](docs/large_benchmark_results.csv), including a `milp_status` column.
+* **Execution time**: ~35-45 minutes (MILP runs up to its 180s time limit per instance across 12 instances, plus sequential GA evaluation).
+* **Known limitation, stated honestly**: at this scale (100 facilities, 1,000 customers, 100,000+ continuous routing variables), the exact MILP solver (CBC, 180s time limit) does not have enough time to *prove* optimality on any of the 12 instances — it returns the best feasible solution found within the limit. `MILPSolver.solve()` reports this honestly via the `milp_status` column (`"Time Limit (Feasible, Not Proven Optimal)"` rather than `"Optimal"`). Even so, MILP is consistently the closest of the three methods to the published ground truth (1-20% gap), ahead of the Classical GA (4-16% gap) and the Greedy heuristic (17-54% gap) — see Chapter 12 of the [Complete Project Guide](docs/CFLP_Complete_Project_Guide.md) for the full table and methodology.
 
 ### Step 3 (Optional): Train the Surrogate Models
 If you wish to retrain and regenerate the machine learning models (.pkl files) from scratch:
@@ -287,12 +288,13 @@ OR-Library CFLP instances. Full numbers: [docs/statistical_benchmark_results.csv
 | cap71 – cap74   | 16  | 0.00% | 0.00% |
 | cap101 – cap104 | 25  | 0.00% | 0.00% |
 | cap131 – cap134 | 50  | 0.00% | 0.00% – 0.58% |
-| capa, capb, capc | 100 | 1.7% – 2.2% | 8.5% – 13.3% |
+| capa4, capb4, capc4 | 100 | 1.9% – 4.7% | 9.8% – 18.7% |
 
 **Summary:** On small and medium instances, the Hybrid ML-GA matches the Classical GA
 almost exactly. On the three largest instances (100 facilities, 1000 customers), it
-currently trails behind. This was investigated directly rather than assumed: the best
-training example the surrogate ever saw for the `capa` instance was itself 15.6% away
-from optimal — the model was simply never shown data good enough to guide the search
-further, a data-coverage limitation rather than a defect in the surrogate model or the
-decision logic. Full root-cause analysis in [docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md).
+currently trails behind. This was investigated directly rather than assumed — see
+[docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md) for
+the full root-cause analysis, including two real bugs found and fixed during a final
+pre-submission audit (a data-corruption bug in the OR-Library template parser, and a
+native-crash bug in the Classical GA's large-instance parallelism) that both affect
+these numbers and are documented there in full.

@@ -116,7 +116,7 @@ sed -i 's/BASE_SEED = 42/BASE_SEED = 99/g' src/benchmark_statistical.py
 python src/benchmark_statistical.py > results_seed99.log
 
 # Compare with original seed results
-diff docs/statistical_benchmark_results_VERIFIED.csv docs/statistical_benchmark_results_VERIFIED_seed99.csv
+diff docs/statistical_benchmark_results.csv docs/statistical_benchmark_results_seed99.csv
 ```
 
 **Expected**: Numerical results differ (different seeds → different random numbers → different GA runs → different solutions)
@@ -142,15 +142,15 @@ python src/benchmark_statistical.py | tee benchmark_run.log
 echo "Completed at $(date)"
 
 # 3. Verify output files were created
-ls -lh docs/statistical_benchmark_results_VERIFIED.csv
-ls -lh docs/statistical_benchmark_results_VERIFIED.png
+ls -lh docs/statistical_benchmark_results.csv
+ls -lh docs/statistical_benchmark_results.png
 
 # 4. Inspect results
-head -3 docs/statistical_benchmark_results_VERIFIED.csv
+head -3 docs/statistical_benchmark_results.csv
 # Expected header: Instance,Optimal,Best,Average,Worst,Median,Std Dev,Best Gap (%),Avg Gap (%),Total Time (s)
 
 # 5. Verify all std dev > 0 (not cached)
-awk -F',' 'NR > 1 {print $1, $7}' docs/statistical_benchmark_results_VERIFIED.csv | sort
+awk -F',' 'NR > 1 {print $1, $7}' docs/statistical_benchmark_results.csv | sort
 # Expected: All values > 0 (no zeros, indicates genuine variance)
 ```
 
@@ -175,11 +175,11 @@ cap72,977799.4,977799.400...,977799.400...,977799.400...,977799.400...,X.XX,0.00
 python src/benchmark_large.py | tee benchmark_large.log
 
 # 2. Verify output CSV
-head -2 docs/large_benchmark_results_VERIFIED.csv
+head -2 docs/large_benchmark_results.csv
 # Expected: Header line with columns: dataset, ground_truth, milp_cost, milp_time, ...
 
 # 3. CHECK: MILP costs should be DIFFERENT for each instance
-awk -F',' 'NR > 1 {print $1, $3}' docs/large_benchmark_results_VERIFIED.csv | sort
+awk -F',' 'NR > 1 {print $1, $3}' docs/large_benchmark_results.csv | sort
 # Expected:
 #   capa1 19241056.93 (different)
 #   capa2 18438329.78 (different)
@@ -192,7 +192,7 @@ awk -F',' 'NR > 1 {print $1, $3}' docs/large_benchmark_results_VERIFIED.csv | so
 #   capa4 314581502.39 (IDENTICAL)
 
 # 4. Verify all 12 instances have unique MILP costs
-awk -F',' 'NR > 1 {print $3}' docs/large_benchmark_results_VERIFIED.csv | sort -u | wc -l
+awk -F',' 'NR > 1 {print $3}' docs/large_benchmark_results.csv | sort -u | wc -l
 # Expected output: 12 (all different)
 # Pre-fix would output: 3 (only 3 unique values, repeated within series)
 ```
@@ -263,7 +263,7 @@ python -c "from src.baseline import MILPSolver; print('OK')"
 python src/benchmark_large.py 2>&1 | tee test2.log
 
 # Extract MILP costs
-awk -F',' 'NR > 1 {print $1, $3}' docs/large_benchmark_results_VERIFIED.csv > milp_costs.txt
+awk -F',' 'NR > 1 {print $1, $3}' docs/large_benchmark_results.csv > milp_costs.txt
 
 # Count unique costs
 awk '{print $2}' milp_costs.txt | sort -u | wc -l > unique_count.txt
@@ -294,7 +294,7 @@ fi
 python src/benchmark_statistical.py 2>&1 | tee test3.log
 
 # Extract standard deviations
-awk -F',' 'NR > 1 {print $1, $7}' docs/statistical_benchmark_results_VERIFIED.csv > stds.txt
+awk -F',' 'NR > 1 {print $1, $7}' docs/statistical_benchmark_results.csv > stds.txt
 
 # Check if any std == 0
 ZERO_STDS=$(awk '$2 == 0 {print}' stds.txt | wc -l)
@@ -323,14 +323,14 @@ fi
 ```bash
 # Run 1: with BASE_SEED=42
 python src/benchmark_statistical.py > run_seed42.log
-cp docs/statistical_benchmark_results_VERIFIED.csv results_seed42.csv
+cp docs/statistical_benchmark_results.csv results_seed42.csv
 
 # Change seed
 sed -i 's/BASE_SEED = 42/BASE_SEED = 999/g' src/benchmark_statistical.py
 
 # Run 2: with BASE_SEED=999
 python src/benchmark_statistical.py > run_seed999.log
-cp docs/statistical_benchmark_results_VERIFIED.csv results_seed999.csv
+cp docs/statistical_benchmark_results.csv results_seed999.csv
 
 # Restore original seed
 sed -i 's/BASE_SEED = 999/BASE_SEED = 42/g' src/benchmark_statistical.py
@@ -380,28 +380,28 @@ python src/benchmark_large.py 2>&1 | grep "\[MILP Solver\]" | wc -l
 
 **Check 1: Costs Are Positive**
 ```bash
-awk -F',' 'NR > 1 {if ($3 <= 0) print "ERROR: " $1 " has non-positive MILP cost: " $3}' docs/large_benchmark_results_VERIFIED.csv
+awk -F',' 'NR > 1 {if ($3 <= 0) print "ERROR: " $1 " has non-positive MILP cost: " $3}' docs/large_benchmark_results.csv
 # Expected: No output (all costs > 0)
 ```
 
 **Check 2: Gaps Are Reasonable**
 ```bash
-awk -F',' 'NR > 1 {gap = $9; if (gap > 100 || gap < -10) print $1 " has suspicious gap: " gap "%"}' docs/large_benchmark_results_VERIFIED.csv
+awk -F',' 'NR > 1 {gap = $9; if (gap > 100 || gap < -10) print $1 " has suspicious gap: " gap "%"}' docs/large_benchmark_results.csv
 # Expected: Most gaps 0-50%, some may be slightly negative due to rounding
 ```
 
 **Check 3: Times Are Reasonable**
 ```bash
-awk -F',' 'NR > 1 {if ($5 > 600) print $1 " took " $5 "s (> 10 min)"}' docs/large_benchmark_results_VERIFIED.csv
+awk -F',' 'NR > 1 {if ($5 > 600) print $1 " took " $5 "s (> 10 min)"}' docs/large_benchmark_results.csv
 # Expected: All times < 600s (10 minutes)
 ```
 
 **Check 4: File Size Is Reasonable**
 ```bash
-ls -lh docs/statistical_benchmark_results_VERIFIED.csv
+ls -lh docs/statistical_benchmark_results.csv
 # Expected: ~2-4 KB (CSV with 16 rows, 10 columns)
 
-ls -lh docs/statistical_benchmark_results_VERIFIED.png
+ls -lh docs/statistical_benchmark_results.png
 # Expected: ~300 KB (matplotlib figure, 1200x800 pixels)
 ```
 
@@ -438,8 +438,8 @@ ls -lh docs/statistical_benchmark_results_VERIFIED.png
 # Verification Protocol: Three-Step Test
 
 # STEP 1: Remove old results
-rm docs/statistical_benchmark_results_VERIFIED.csv
-rm docs/statistical_benchmark_results_VERIFIED.png
+rm docs/statistical_benchmark_results.csv
+rm docs/statistical_benchmark_results.png
 
 # STEP 2: Run benchmark
 echo "Running benchmark at $(date)..."
@@ -449,24 +449,24 @@ echo "Completed at $(date)"
 # STEP 3: Inspect results
 echo "=== Verification ==="
 echo "1. CSV file exists:"
-ls -lh docs/statistical_benchmark_results_VERIFIED.csv
+ls -lh docs/statistical_benchmark_results.csv
 
 echo ""
 echo "2. CSV has correct format:"
-head -1 docs/statistical_benchmark_results_VERIFIED.csv
+head -1 docs/statistical_benchmark_results.csv
 
 echo ""
 echo "3. PNG exists:"
-ls -lh docs/statistical_benchmark_results_VERIFIED.png
+ls -lh docs/statistical_benchmark_results.png
 
 echo ""
 echo "4. All std devs are non-zero:"
-awk -F',' 'NR > 1 && $7 > 0' docs/statistical_benchmark_results_VERIFIED.csv | wc -l
+awk -F',' 'NR > 1 && $7 > 0' docs/statistical_benchmark_results.csv | wc -l
 # Expected: 15 (all instances)
 
 echo ""
 echo "5. Sample results (first 3 instances):"
-head -4 docs/statistical_benchmark_results_VERIFIED.csv | tail -3 | cut -d',' -f1,3,6,7
+head -4 docs/statistical_benchmark_results.csv | tail -3 | cut -d',' -f1,3,6,7
 ```
 
 ---
@@ -554,7 +554,7 @@ INSTANCES = ["cap71", "cap72"]  # Run only 2 instances instead of 15
 
 ### Problem 5: Results differ from published CSV
 
-**Symptom**: Re-running benchmark produces different results than `docs/statistical_benchmark_results_VERIFIED.csv`
+**Symptom**: Re-running benchmark produces different results than `docs/statistical_benchmark_results.csv`
 
 **Explanation**: This is expected! Reasons:
 1. Different random seeds (if BASE_SEED changed)
@@ -565,13 +565,13 @@ INSTANCES = ["cap71", "cap72"]  # Run only 2 instances instead of 15
 ```bash
 # Compare average costs (should be within 1-2% of old results)
 # Extract from old CSV: avg cost for cap71
-OLD_AVG=$(grep "^cap71," docs/statistical_benchmark_results_VERIFIED.csv | cut -d',' -f4)
+OLD_AVG=$(grep "^cap71," docs/statistical_benchmark_results.csv | cut -d',' -f4)
 
 # Run new benchmark
 python src/benchmark_statistical.py
 
 # Extract from new CSV
-NEW_AVG=$(grep "^cap71," docs/statistical_benchmark_results_VERIFIED.csv | cut -d',' -f4)
+NEW_AVG=$(grep "^cap71," docs/statistical_benchmark_results.csv | cut -d',' -f4)
 
 # Compare (should be within ~1%)
 echo "Old avg: $OLD_AVG, New avg: $NEW_AVG"

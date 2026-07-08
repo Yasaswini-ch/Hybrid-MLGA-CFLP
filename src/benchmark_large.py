@@ -48,13 +48,19 @@ def run_benchmarks():
         dataset = CFLPDataset(file_path)
         
         # 1. Run MILP Solver
+        # NOTE: at this scale (100 facilities x 1000 customers), CBC frequently cannot
+        # prove optimality within any practical time budget -- this is a normal, expected
+        # characteristic of exact MILP solvers on NP-hard problems this size, not a bug.
+        # MILPSolver.solve() reports this honestly via the returned status string
+        # ("Time Limit (Feasible, Not Proven Optimal)" vs "Optimal") rather than claiming
+        # a false optimum.
         print("  - Running MILP solver...")
         t0 = time.time()
         milp = MILPSolver(dataset)
-        m_cost, m_y, _, m_status = milp.solve(timeout_sec=120)
+        m_cost, m_y, _, m_status = milp.solve(timeout_sec=180)
         m_time = time.time() - t0
         m_active = int(np.sum(m_y))
-        
+
         # 2. Run Greedy Heuristic
         print("  - Running Greedy solver...")
         t0 = time.time()
@@ -62,13 +68,15 @@ def run_benchmarks():
         g_cost, g_y, _ = greedy.solve()
         g_time = time.time() - t0
         g_active = int(np.sum(g_y))
-        
+
         # 3. Run Classical GA
         print("  - Running Classical GA...")
-        # Since these are 100x1000, we run a fast GA (pop=10, gen=10) to keep runtimes reasonable
+        # pop=10/gen=10 was too small a budget for 100-facility instances and occasionally
+        # returned the raw infeasibility penalty (1e12) instead of a real solution.
+        # pop=50/gen=50 reliably finds a feasible solution while still running quickly.
         t0 = time.time()
         ga = CFLPGASolver(dataset)
-        ga_cost, ga_y, ga_history = ga.solve(pop_size=10, n_gen=10, cx_pb=0.8, mut_pb=0.2)
+        ga_cost, ga_y, ga_history = ga.solve(pop_size=50, n_gen=50, cx_pb=0.8, mut_pb=0.2)
         ga_time = time.time() - t0
         ga_active = int(np.sum(ga_y))
         
@@ -78,14 +86,15 @@ def run_benchmarks():
         g_gap = ((g_cost - m_cost) / m_cost) * 100.0
         ga_gap = ((ga_cost - m_cost) / m_cost) * 100.0
         
-        print(f"  * MILP Cost  : ${m_cost:,.2f} (Opened {m_active}/100, Time: {m_time:.2f}s, GT Gap: {m_gap:.4f}%)")
+        print(f"  * MILP Cost  : ${m_cost:,.2f} (Opened {m_active}/100, Time: {m_time:.2f}s, GT Gap: {m_gap:.4f}%, Status: {m_status})")
         print(f"  * Greedy Cost: ${g_cost:,.2f} (Opened {g_active}/100, Time: {g_time:.4f}s, Gap: {g_gap:.4f}%)")
         print(f"  * GA Cost    : ${ga_cost:,.2f} (Opened {ga_active}/100, Time: {ga_time:.2f}s, Gap: {ga_gap:.4f}%)")
-        
+
         results.append({
             "dataset": name,
             "ground_truth": gt,
             "milp_cost": m_cost,
+            "milp_status": m_status,
             "milp_time": m_time,
             "milp_active": m_active,
             "greedy_cost": g_cost,
@@ -107,10 +116,10 @@ def run_benchmarks():
     print("\n" + "=" * 110)
     print(f"{'FINAL LARGE-SCALE BENCHMARK COMPARISON':^110}")
     print("=" * 110)
-    print("| Dataset | Ground Truth | MILP Cost | MILP Time (s) | Greedy Cost | Greedy Gap (%) | GA Cost | GA Gap (%) |")
-    print("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+    print("| Dataset | Ground Truth | MILP Cost | MILP Status | MILP Time (s) | Greedy Cost | Greedy Gap (%) | GA Cost | GA Gap (%) |")
+    print("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
     for r in results:
-        print(f"| {r['dataset']} | ${r['ground_truth']:,.2f} | ${r['milp_cost']:,.2f} | {r['milp_time']:.2f}s | ${r['greedy_cost']:,.2f} | {r['greedy_gap']:.2f}% | ${r['ga_cost']:,.2f} | {r['ga_gap']:.2f}% |")
+        print(f"| {r['dataset']} | ${r['ground_truth']:,.2f} | ${r['milp_cost']:,.2f} | {r['milp_status']} | {r['milp_time']:.2f}s | ${r['greedy_cost']:,.2f} | {r['greedy_gap']:.2f}% | ${r['ga_cost']:,.2f} | {r['ga_gap']:.2f}% |")
 
 if __name__ == "__main__":
     run_benchmarks()

@@ -61,11 +61,16 @@ LARGE_GEN = 100
 
 WARMUP_FRACTION = 0.15
 
+# NOTE: "capa"/"capb"/"capc" are Beasley OR-Library TEMPLATE files (capacity is the
+# literal placeholder word "capacity", not a real number) -- not usable instances on
+# their own. We use capa4/capb4/capc4, the largest-capacity variant from each family
+# (produced by preprocess_orlib.py, per Beasley 1988 Table 1), matching the reference
+# optimal values below and benchmark_large.py's ground_truths dict.
 INSTANCES = [
     "cap71", "cap72", "cap73", "cap74",
     "cap101", "cap102", "cap103", "cap104",
     "cap131", "cap132", "cap133", "cap134",
-    "capa", "capb", "capc",
+    "capa4", "capb4", "capc4",
 ]
 
 CFLP_OPTIMAL: Dict[str, float] = {
@@ -81,9 +86,9 @@ CFLP_OPTIMAL: Dict[str, float] = {
     "cap132": 851495.325,
     "cap133": 893076.712,
     "cap134": 928941.750,
-    "capa": 17156454.48,
-    "capb": 12979071.58,
-    "capc": 11505594.33,
+    "capa4": 17160612.23,
+    "capb4": 13083203.74,
+    "capc4": 11505861.86,
 }
 
 
@@ -98,7 +103,7 @@ def benchmark_instance(name: str) -> Dict[str, Any]:
     print(f"========================================================")
 
     dataset = CFLPDataset(file_path)
-    is_large = name in ("capa", "capb", "capc")
+    is_large = name in ("capa4", "capb4", "capc4")
     pop_size = LARGE_POP if is_large else SMALL_POP
     n_gen = LARGE_GEN if is_large else SMALL_GEN
     bootstrap_pop = BOOTSTRAP_POP_LARGE if is_large else BOOTSTRAP_POP_SMALL
