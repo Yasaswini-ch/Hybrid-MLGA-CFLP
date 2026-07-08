@@ -267,7 +267,10 @@ def run_experiments():
     print("\n[Stage 2] Solving via Nearest Feasible Heuristic...")
     greedy_solver = GreedyBaselineSolver(dataset)
     greedy_sol = greedy_solver.solve()
-    greedy_cost = np.sum(greedy_sol.y * dataset.fixed_costs) + np.sum(greedy_sol.x * dataset.transport_costs)
+    demands_safe = np.where(dataset.demands > 0, dataset.demands, 1.0)
+    greedy_cost = np.sum(greedy_sol.y * dataset.fixed_costs) + np.sum(
+        (greedy_sol.x / demands_safe[:, np.newaxis]) * dataset.transport_costs
+    )
     print(f"  Greedy Total Cost: ${greedy_cost:,.2f} (Active footprint: {int(np.sum(greedy_sol.y))}/{dataset.num_facilities} open)")
     
     # GA Parameters for controlled experiments
