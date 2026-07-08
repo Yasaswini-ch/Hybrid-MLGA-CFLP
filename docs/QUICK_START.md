@@ -249,7 +249,7 @@ See [REPRODUCIBILITY_AND_VERIFICATION.md](REPRODUCIBILITY_AND_VERIFICATION.md) f
 | [BUG_FIXES_AND_CORRECTIONS.md](BUG_FIXES_AND_CORRECTIONS.md) | Skeptical about results | 6 bugs found & fixed, verification tests |
 | [IMPLEMENTATION_ARCHITECTURE.md](IMPLEMENTATION_ARCHITECTURE.md) | Want to understand code | Detailed algorithm explanations, all modules |
 | [REPRODUCIBILITY_AND_VERIFICATION.md](REPRODUCIBILITY_AND_VERIFICATION.md) | Want to verify reproducibility | Step-by-step reproduction guide, 5 verification tests |
-| [CFLP_Complete_Project_Guide.md](CFLP_Complete_Project_Guide.md) | Want deep theory | Mathematical formulation, operational research context |
+| [PHASE_4_HYBRID_BENCHMARK_REPORT.md](PHASE_4_HYBRID_BENCHMARK_REPORT.md) | Want full results & honest analysis | Hybrid ML-GA vs. Classical GA on all 15 instances, large-instance MILP table, root-cause writeups |
 
 ---
 

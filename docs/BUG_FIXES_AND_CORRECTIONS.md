@@ -15,9 +15,8 @@
 > and fixed: a data-corruption bug in the OR-Library template parser
 > (`capa`/`capb`/`capc`), a native-crash bug in the Classical GA's large-instance
 > parallel evaluator, and a MILP routing cross-validation gap. See
-> `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md` and Chapter 16 of
-> `docs/CFLP_Complete_Project_Guide.md` for the full, current, and correct story —
-> read those alongside this document, not instead of it.
+> `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md` for the full, current, and correct
+> story — read it alongside this document, not instead of it.
 
 ## Executive Summary
 

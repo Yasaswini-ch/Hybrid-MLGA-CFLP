@@ -610,7 +610,8 @@ python src/benchmark_hybrid_ga.py
   `"Time Limit (Feasible, Not Proven Optimal)"` rather than falsely claiming
   `"Optimal"`. Even time-limited, MILP is consistently the closest of the three methods
   to the published ground truth (1-20% gap, vs. 4-16% for Classical GA and 17-54% for
-  Greedy) — see Chapter 12 of `docs/CFLP_Complete_Project_Guide.md` for the full table.
+  Greedy) — see the large-instance table in `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md`
+  for the full breakdown.
 
 ### Issue 3: Population Diversity Loss
 - **Problem**: GA converges to local optimum, missing global optimum

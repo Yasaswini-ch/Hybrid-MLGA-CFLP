@@ -23,7 +23,7 @@ This project has been comprehensively audited, debugged, and documented. **Start
 
 ### For Everyone:
 - **[QUICK_START.md](docs/QUICK_START.md)** — 5-minute guide to run benchmarks and understand the code
-- **[CFLP_Complete_Project_Guide.md — Chapter 16](docs/CFLP_Complete_Project_Guide.md)** — Plain-language walkthrough of the latest Hybrid ML-GA fixes and results (start here if you only read one thing)
+- **[PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md)** — Plain-language walkthrough of the latest Hybrid ML-GA fixes and results (start here if you only read one thing)
 
 ### If You Want Details:
 - **[BUG_FIXES_AND_CORRECTIONS.md](docs/BUG_FIXES_AND_CORRECTIONS.md)** — What bugs existed, how they were fixed, and how to verify
@@ -32,7 +32,7 @@ This project has been comprehensively audited, debugged, and documented. **Start
 - **[PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md)** — Full Hybrid ML-GA re-benchmark results on all 15 OR-Library instances, including an honest analysis of where it currently underperforms and why
 
 ### Project Status:
-- ✅ **10 real bugs found and fixed across two audit rounds** — 6 in the original forensic audit (see [BUG_FIXES_AND_CORRECTIONS.md](docs/BUG_FIXES_AND_CORRECTIONS.md)), plus 4 more found in a final pre-submission audit: a data-corruption bug in the OR-Library template parser, a native-crash bug in the Classical GA's large-instance parallel evaluator, and a genuine MILP objective-formula bug — which also revealed that one of the original 6 fixes (the June audit's "MILP transport cost" fix) had itself been backwards and is now reverted (see [PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md) and Chapter 16 of the [Complete Project Guide](docs/CFLP_Complete_Project_Guide.md))
+- ✅ **10 real bugs found and fixed across two audit rounds** — 6 in the original forensic audit (see [BUG_FIXES_AND_CORRECTIONS.md](docs/BUG_FIXES_AND_CORRECTIONS.md)), plus 4 more found in a final pre-submission audit: a data-corruption bug in the OR-Library template parser, a native-crash bug in the Classical GA's large-instance parallel evaluator, and a genuine MILP objective-formula bug — which also revealed that one of the original 6 fixes (the June audit's "MILP transport cost" fix) had itself been backwards and is now reverted (see [PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md))
 - ✅ **Fully reproducible** (random seeds managed, caching fixed)
 - ✅ **Research-ready** (defensive documentation, verification tests)
 - ✅ **Hybrid ML-GA can now bootstrap its own training data** — no pre-trained model required to start (see [§8](#-hybrid-ml-ga-workflow-latest))
@@ -173,7 +173,7 @@ python src/benchmark_large.py
 ```
 * **What it outputs**: Prints details of cost gaps, facility counts, and runtimes, and generates [docs/large_benchmark_results.csv](docs/large_benchmark_results.csv), including a `milp_status` column.
 * **Execution time**: ~35-45 minutes (MILP runs up to its 180s time limit per instance across 12 instances, plus sequential GA evaluation).
-* **Known limitation, stated honestly**: at this scale (100 facilities, 1,000 customers, 100,000+ continuous routing variables), the exact MILP solver (CBC, 180s time limit) does not have enough time to *prove* optimality on any of the 12 instances — it returns the best feasible solution found within the limit. `MILPSolver.solve()` reports this honestly via the `milp_status` column (`"Time Limit (Feasible, Not Proven Optimal)"` rather than `"Optimal"`). Even so, MILP is consistently the closest of the three methods to the published ground truth (1-20% gap), ahead of the Classical GA (4-16% gap) and the Greedy heuristic (17-54% gap) — see Chapter 12 of the [Complete Project Guide](docs/CFLP_Complete_Project_Guide.md) for the full table and methodology.
+* **Known limitation, stated honestly**: at this scale (100 facilities, 1,000 customers, 100,000+ continuous routing variables), the exact MILP solver (CBC, 180s time limit) does not have enough time to *prove* optimality on any of the 12 instances — it returns the best feasible solution found within the limit. `MILPSolver.solve()` reports this honestly via the `milp_status` column (`"Time Limit (Feasible, Not Proven Optimal)"` rather than `"Optimal"`). Even so, MILP is consistently the closest of the three methods to the published ground truth (1-20% gap), ahead of the Classical GA (4-16% gap) and the Greedy heuristic (17-54% gap) — see the large-instance table in [PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md) for the full breakdown and methodology.
 
 ### Step 3 (Optional): Train the Surrogate Models
 If you wish to retrain and regenerate the machine learning models (.pkl files) from scratch:
