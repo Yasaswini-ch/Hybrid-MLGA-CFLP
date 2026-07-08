@@ -48,7 +48,7 @@ All instances from **Beasley's OR-Library** (standard benchmark suite):
 |--------|-----------|-----------|-----------|
 | cap7x | 16 | 50 | cap71, cap72, cap73, cap74 |
 | cap10x | 25 | 50 | cap101, cap102, cap103, cap104 |
-| cap13x | 50 | 150 | cap131, cap132, cap133, cap134 |
+| cap13x | 50 | 50 | cap131, cap132, cap133, cap134 |
 | capa,b,c | 100 | 1000 | capa4, capb4, capc4 (the bare `capa`/`capb`/`capc` files are unfilled Beasley templates and cannot be used directly — see `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md`) |
 
 ---
