@@ -400,6 +400,30 @@ def run_comparison_experiment(dataset_path: str,
 
     dataset = CFLPDataset(dataset_path)
 
+    # CFLPSurrogateModel.save()/load() always uses a fixed filename per model type
+    # (surrogate_random_forest.pkl, etc.) regardless of which instance it was trained
+    # on. If benchmark_hybrid_ga.py (or training_pipeline.py on a different instance)
+    # ran after these were generated for dataset_path, they will have been silently
+    # overwritten with a model trained on a different-sized instance -- which fails
+    # deep inside sklearn/xgboost with a confusing feature-count mismatch rather than
+    # a clear message. Check upfront and fail clearly instead.
+    expected_features = dataset.num_facilities + 4  # CFLPFeatureEngineer(mode="full")
+    for model_file in required_models:
+        loaded = CFLPSurrogateModel.load(os.path.join(model_dir, model_file))
+        actual_features = loaded.model.n_features_in_
+        if actual_features != expected_features:
+            raise ValueError(
+                f"{model_file} was trained on a different instance than {dataset_path} "
+                f"expects: it takes {actual_features} input features, but {dataset_path} "
+                f"needs {expected_features} ({dataset.num_facilities} facilities + 4 "
+                f"engineered features). This happens if training_pipeline.py or "
+                f"benchmark_hybrid_ga.py ran afterward on a different-sized instance and "
+                f"silently overwrote {model_file} (both always save to the same fixed "
+                f"filename per model type, regardless of instance). Re-run "
+                f"`python src/training_pipeline.py` last, right before this script, to "
+                f"regenerate the correct cap41-based models."
+            )
+
     results = {}
 
     # --- Tier 1: Greedy Heuristic ---
