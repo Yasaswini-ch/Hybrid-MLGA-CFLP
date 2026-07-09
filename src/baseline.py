@@ -271,9 +271,16 @@ def run_benchmarks():
         file_path = os.path.join(raw_dir, filename)
         if not os.path.exists(file_path):
             continue
-            
-        dataset = CFLPDataset(file_path)
-        
+
+        try:
+            dataset = CFLPDataset(file_path)
+        except ValueError:
+            # capa.txt/capb.txt/capc.txt are unfilled Beasley OR-Library templates
+            # (matched by the "cap*.txt" glob above along with real instances) --
+            # not usable on their own. Skip them rather than crashing the whole run.
+            print(f"{filename:<8} | [skipped -- unfilled template, use its capX1-4.txt variants instead]")
+            continue
+
         # 1. Solve using Greedy Heuristic
         t0 = time.time()
         greedy = GreedySolver(dataset)

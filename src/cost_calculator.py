@@ -93,6 +93,7 @@ if __name__ == "__main__":
             self.num_facilities = 3
             self.num_customers = 2
             self.fixed_costs = np.array([5000.0, 10000.0, 7500.0])
+            self.demands = np.array([10.0, 15.0])
             self.transport_costs = np.array([
                 [100.0, 200.0, 150.0],
                 [300.0, 100.0, 250.0]
@@ -124,10 +125,16 @@ if __name__ == "__main__":
         print(f"Calculated Transportation Cost : ${transport:,.2f}")
         assert transport == 2500.0
         
-        # Total cost: 15000 + 2500 = 17500.0
+        # calculate_total_cost() divides flow by demand before applying transport_costs
+        # (transport_costs[j,i] is the flat total cost to fully serve customer j from
+        # facility i, not a per-unit rate -- see baseline.py's MILP objective comment
+        # for the full evidence). Both customers here are served 100% by one facility
+        # (flow == demand), so the fraction is 1.0 for each and transport reduces to
+        # 100 + 100 = 200.0, not the raw absolute-flow product (2500.0) tested above.
+        # Total cost: 15000 + 200 = 15200.0
         total = calculate_total_cost(sol, mock_dataset)
         print(f"Calculated Total Objective Cost: ${total:,.2f}")
-        assert total == 17500.0
+        assert total == 15200.0
         
         print("Assert passed: All modular cost calculations are 100% correct!")
     except Exception as e:

@@ -185,7 +185,10 @@ if __name__ == "__main__":
     for err in errs:
         print(f"  * {err}")
     assert ok == False
-    assert len(errs) == 2  # Customer 0 demand mismatch, Facility 1 closed flow
+    # 3 legitimate violations: Customer 0 demand shortfall, Facility 1 capacity
+    # violation (closed facility has 0 capacity but received flow), and the
+    # separate closed-facility-shipment check catching the same root cause.
+    assert len(errs) == 3
     
     print("\n--- Testing Infeasible Solution (Capacity overflow violation) ---")
     mock_y_overflow = np.array([0, 1, 0])

@@ -303,6 +303,25 @@ def main():
     corpus_path = os.path.join(base_dir, "..", "data", "processed", "cflp_dataset.npz")
     model_save_dir = os.path.join(base_dir, "..", "data", "processed")
 
+    if not os.path.exists(corpus_path):
+        # Regenerable artifact, not shipped -- bootstrap it from scratch via
+        # GA-derived sampling (same approach as training_pipeline.py's main()
+        # and benchmark_hybrid_ga.py), so this script is runnable standalone
+        # from a clean checkout with no prerequisite steps.
+        print(f"[ActiveLearning] No existing corpus at {corpus_path} -- bootstrapping "
+              f"one from scratch via GA-derived sampling (cap41, pop=30, gen=15)...")
+        from parser import CFLPDataset
+        from hybrid_ga import HybridMLGASolver, extract_training_data_from_ga
+        from dataset_generator import CFLPDatasetGenerator
+
+        bootstrap_dataset = CFLPDataset(dataset_path)
+        bootstrap_ga = HybridMLGASolver(dataset=bootstrap_dataset, surrogate=None,
+                                         pop_size=30, n_generations=15, random_seed=42)
+        boot_result = bootstrap_ga.solve()
+        X, y = extract_training_data_from_ga(boot_result, dataset=bootstrap_dataset)
+        CFLPDatasetGenerator(bootstrap_dataset).save(X, y, corpus_path)
+        print(f"[ActiveLearning] Bootstrap corpus saved: {X.shape[0]} unique samples -> {corpus_path}")
+
     learner = SurrogateActiveLearner(
         dataset_path=dataset_path,
         corpus_path=corpus_path,
