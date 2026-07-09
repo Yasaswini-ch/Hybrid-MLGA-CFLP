@@ -332,11 +332,14 @@ The two benchmark scripts that use it override these defaults with their own con
 |---|---|:---:|:---:|:---:|:---:|
 | `benchmark_statistical.py` | small/medium (`cap71`–`cap134`) | `SMALL_POP = 120` | `SMALL_GEN = 100` | `0.8` (hardcoded in the call) | `SMALL_MUT = 0.3` |
 | `benchmark_statistical.py` | large (`capa4`/`capb4`/`capc4`) | `LARGE_POP = 40` | `LARGE_GEN = 60` | `0.8` | `LARGE_MUT = 0.2` |
-| `benchmark_large.py` | all 12 large instances | `50` (hardcoded inline) | `50` | `0.8` | `0.2` |
+| `benchmark_large.py` | all 12 large instances | `GA_POP = 50` | `GA_GEN = 50` | `GA_CX_PB = 0.8` | `GA_MUT_PB = 0.2` |
 
 The `SMALL_*`/`LARGE_*` constants sit near the top of `benchmark_statistical.py`
-(around line 55). Mutation is applied per-bit at probability `1.0 / num_facilities`
-inside `CFLPGASolver`'s DEAP setup (`ga_solver.py`, `mutFlipBit` registration) — the
+(around line 55); `benchmark_large.py` has no small/large split (all 12 of its
+instances are the same size), so its `GA_*` constants sit near the top of that file
+instead, alongside `MILP_TIMEOUT_SEC = 180`. Mutation is applied per-bit at probability
+`1.0 / num_facilities` inside `CFLPGASolver`'s DEAP setup (`ga_solver.py`, `mutFlipBit`
+registration) — the
 `mut_pb` argument above is the probability an *individual* is mutated at all, not the
 per-bit rate.
 

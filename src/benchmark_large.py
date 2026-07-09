@@ -6,6 +6,16 @@ from parser import CFLPDataset
 from baseline import MILPSolver, GreedySolver
 from ga_solver import CFLPGASolver
 
+# ---- Configuration ----
+# Unlike benchmark_statistical.py / benchmark_hybrid_ga.py, this script has no
+# small-vs-large split: all 12 instances here are the same size (100 facilities,
+# 1,000 customers), so a single GA budget applies to every one of them.
+MILP_TIMEOUT_SEC = 180
+GA_POP = 50
+GA_GEN = 50
+GA_CX_PB = 0.8
+GA_MUT_PB = 0.2
+
 def run_benchmarks():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     raw_dir = os.path.join(base_dir, "..", "data", "raw")
@@ -57,7 +67,7 @@ def run_benchmarks():
         print("  - Running MILP solver...")
         t0 = time.time()
         milp = MILPSolver(dataset)
-        m_cost, m_y, _, m_status = milp.solve(timeout_sec=180)
+        m_cost, m_y, _, m_status = milp.solve(timeout_sec=MILP_TIMEOUT_SEC)
         m_time = time.time() - t0
         m_active = int(np.sum(m_y))
 
@@ -76,7 +86,7 @@ def run_benchmarks():
         # pop=50/gen=50 reliably finds a feasible solution while still running quickly.
         t0 = time.time()
         ga = CFLPGASolver(dataset)
-        ga_cost, ga_y, ga_history = ga.solve(pop_size=50, n_gen=50, cx_pb=0.8, mut_pb=0.2)
+        ga_cost, ga_y, ga_history = ga.solve(pop_size=GA_POP, n_gen=GA_GEN, cx_pb=GA_CX_PB, mut_pb=GA_MUT_PB)
         ga_time = time.time() - t0
         ga_active = int(np.sum(ga_y))
         
