@@ -374,10 +374,29 @@ def run_comparison_experiment(dataset_path: str,
       Tier 3b: Hybrid ML-GA — Confidence-Aware (Random Forest)
 
     Saves a convergence + runtime comparison plot to output_dir.
+
+    Requires two pre-trained surrogate model files to already exist in model_dir
+    (surrogate_xgboost.pkl, surrogate_random_forest.pkl) -- these are not shipped,
+    since they are regenerable artifacts, not source. Run
+    `python src/training_pipeline.py` first to generate them.
     """
     print("\n" + "=" * 70)
     print("  CFLP THREE-TIER SOLVER COMPARISON EXPERIMENT")
     print("=" * 70)
+
+    required_models = ["surrogate_xgboost.pkl", "surrogate_random_forest.pkl"]
+    missing = [m for m in required_models if not os.path.exists(os.path.join(model_dir, m))]
+    if missing:
+        raise FileNotFoundError(
+            f"run_comparison_experiment() requires pre-trained surrogate model(s) "
+            f"{missing} in {model_dir}, which don't exist yet. These are regenerable "
+            f"artifacts, not shipped source -- run `python src/training_pipeline.py` "
+            f"first to generate them, then re-run this script.\n"
+            f"Note: this comparison demo is not needed to reproduce the project's "
+            f"reported benchmark results -- for that, run benchmark_statistical.py, "
+            f"benchmark_large.py, and benchmark_hybrid_ga.py instead (see README.md), "
+            f"none of which require any pre-existing model file."
+        )
 
     dataset = CFLPDataset(dataset_path)
 

@@ -204,7 +204,14 @@ class SurrogateTrainingPipeline:
 
 def main():
     """
-    Standalone execution: trains all surrogate models on cap41 corpus.
+    Standalone execution: trains all surrogate models on a cap41 corpus.
+
+    The corpus (data/processed/cflp_dataset.npz) is not shipped -- it is a
+    regenerable artifact, not source. If it doesn't exist yet, it is bootstrapped
+    here from scratch using the same GA-derived sampling approach as
+    benchmark_hybrid_ga.py (HybridMLGASolver with surrogate=None, i.e. every
+    candidate evaluated with the exact LP solver and logged), so this script is
+    runnable standalone from a clean checkout with no prerequisite steps.
     """
     base_dir = os.path.dirname(__file__)
     raw_path = os.path.join(base_dir, "..", "data", "raw", "cap41.txt")
@@ -212,6 +219,19 @@ def main():
     model_save_dir = os.path.join(base_dir, "..", "data", "processed")
 
     dataset = CFLPDataset(raw_path)
+
+    if not os.path.exists(corpus_path):
+        print(f"[Pipeline] No existing corpus at {corpus_path} -- bootstrapping one "
+              f"from scratch via GA-derived sampling (cap41, pop=30, gen=15)...")
+        from hybrid_ga import HybridMLGASolver, extract_training_data_from_ga
+        from dataset_generator import CFLPDatasetGenerator
+
+        bootstrap_ga = HybridMLGASolver(dataset=dataset, surrogate=None,
+                                         pop_size=30, n_generations=15, random_seed=42)
+        boot_result = bootstrap_ga.solve()
+        X, y = extract_training_data_from_ga(boot_result, dataset=dataset)
+        CFLPDatasetGenerator(dataset).save(X, y, corpus_path)
+        print(f"[Pipeline] Bootstrap corpus saved: {X.shape[0]} unique samples -> {corpus_path}")
 
     pipeline = SurrogateTrainingPipeline(
         dataset=dataset,
