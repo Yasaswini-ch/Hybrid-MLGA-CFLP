@@ -343,6 +343,21 @@ registration) — the
 `mut_pb` argument above is the probability an *individual* is mutated at all, not the
 per-bit rate.
 
+**Early termination (convergence detection):** `CFLPGASolver.solve()` can stop before
+reaching `n_gen` if the search has stagnated. Two local constants inside `solve()`
+(`ga_solver.py`, lines 243–244) control this — they are not currently exposed as
+module-level constants, so change them directly in the method body:
+
+| Constant | Value | Controls |
+|---|:---:|---|
+| `STAGNATION_LIMIT` | `10` | Number of consecutive generations with no meaningful improvement before the run terminates early |
+| `MIN_IMPROVEMENT_THRESHOLD` | `0.0001` (0.01%) | An improvement smaller than this percentage counts as "no improvement" for the stagnation count |
+
+When this triggers, you'll see a line like `[Convergence] Early termination at
+generation 32/200 (no improvement for 10 generations)` — the run stopped at generation
+32 because 10 consecutive generations each improved the best cost by less than 0.01%
+(or not at all).
+
 ### Hybrid ML-GA (`src/benchmark_hybrid_ga.py`)
 
 All constants are defined near the top of the file (lines 44–62):
