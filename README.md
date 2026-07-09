@@ -14,6 +14,7 @@ An academic and engineering project aimed at building a high-performance, hybrid
 7. [Detailed Execution Flow (What Happens Under the Hood)](#-detailed-execution-flow-what-happens-under-the-hood)
 8. [Hybrid ML-GA Workflow (Latest)](#-hybrid-ml-ga-workflow-latest)
 9. [Latest Verified Benchmark Results](#-latest-verified-benchmark-results)
+10. [Configuration & Tuning Parameters](#-configuration--tuning-parameters)
 
 ---
 
@@ -79,30 +80,38 @@ CAPL/
 │                              # Not required to be pre-populated; nothing in src/ depends on files
 │                              # already existing here.
 ├── src/                      # Modular Python modules
+│   │
+│   │   -- Used directly by the 3 benchmark scripts below (the actual, benchmarked pipeline) --
 │   ├── parser.py             # OR-Library Dataset Parser
 │   ├── baseline.py           # Greedy & PuLP MILP Solvers
-│   ├── baseline_solver.py    # Baseline solver wrapper classes
-│   ├── chromosome.py         # Binary solution representation
-│   ├── population.py         # Population initialization & heuristic seeding
-│   ├── selection.py          # Selection operators (Tournament, Elitism)
-│   ├── crossover.py          # Mating operators (Two-Point, Uniform)
-│   ├── mutation.py           # Mutation operator (Bit-Flip)
-│   ├── repair.py             # Constraint repairer (restores empty/invalid status configurations)
-│   ├── fitness.py            # Exact cost and constraint penalization calculator
+│   ├── fitness.py            # Exact cost and constraint penalization calculator (used by ga_solver.py, hybrid_ga.py, and baseline.py's cross-check)
 │   ├── cost_calculator.py    # Vectorized transportation cost helper
 │   ├── constraint_checker.py # Facility capacity checking helper
-│   ├── genetic_algorithm.py  # Modular Classical GA Solver class
+│   ├── solution_representation.py # Structured (y, x) solution object used by fitness.py / cost_calculator.py
+│   ├── ga_solver.py          # CFLPGASolver — the classical GA actually used by benchmark_statistical.py and benchmark_large.py (DEAP-based)
 │   ├── surrogate_model.py    # ML surrogate models for fitness approximation
 │   ├── feature_engineering.py# Encodes binary configurations into numerical features for ML
 │   ├── training_pipeline.py  # Generates training data and fits models (supports a fixed external validation set)
 │   ├── hybrid_ga.py          # HybridMLGASolver — can bootstrap its own training data (surrogate=None) and uses predicted-cost-vs-best-solution decision logic
-│   ├── active_learning.py    # Quality-gated adaptive retraining loop (rejects worse models, never adopts them)
 │   ├── dataset_generator.py  # Synthesizes datasets for testing; de-duplicates GA-derived training samples
 │   ├── evaluation_metrics.py # Evaluates ML surrogate MAPE accuracy
 │   ├── preprocess_orlib.py   # One-time utility that split capa/capb/capc into the capa1-4/capb1-4/capc1-4 variants used by benchmark_large.py
 │   ├── benchmark_statistical.py # Classical GA benchmark across all 15 OR-Library instances (30 runs each) — Table 2 results
 │   ├── benchmark_hybrid_ga.py   # Hybrid ML-GA benchmark across all 15 OR-Library instances (bootstrap + confidence-aware, 10 runs each)
-│   └── benchmark_large.py    # MILP vs. Greedy vs. Classical GA on the split large-scale variants (capa1-4, capb1-4, capc1-4)
+│   ├── benchmark_large.py    # MILP vs. Greedy vs. Classical GA on the split large-scale variants (capa1-4, capb1-4, capc1-4)
+│   │
+│   │   -- NOT used by the 3 benchmark scripts above; present but not part of the benchmarked pipeline --
+│   ├── genetic_algorithm.py  # "Modular GA" — an alternative, separately-implemented GA. Only invoked from
+│   │                          # hybrid_ga.py's own __main__ demo block, never from a benchmark script.
+│   ├── baseline_solver.py    # Baseline solver wrapper — only used by genetic_algorithm.py above
+│   ├── chromosome.py         # Binary solution representation — only used by genetic_algorithm.py above
+│   ├── population.py         # Population initialization — only used by genetic_algorithm.py above
+│   ├── selection.py          # Selection operators — only used by genetic_algorithm.py above
+│   ├── crossover.py          # Mating operators — only used by genetic_algorithm.py above
+│   ├── mutation.py           # Mutation operator — only used by genetic_algorithm.py above
+│   ├── repair.py             # Constraint repairer — only used by genetic_algorithm.py above
+│   └── active_learning.py    # Quality-gated adaptive retraining loop (rejects worse models, never adopts
+│                              # them). Standalone module; not imported by any of the 3 benchmark scripts.
 ├── docs/                     # Scientific reports, results spreadsheet (.csv), and graphs (.png)
 │   ├── statistical_benchmark_results.csv  # Classical GA results (Optimal vs GA stats, 15 instances)
 │   ├── hybrid_benchmark_results.csv       # Hybrid ML-GA results on the same 15 instances (fresh, corrected implementation)
@@ -301,3 +310,81 @@ the full root-cause analysis, including two real bugs found and fixed during a f
 pre-submission audit (a data-corruption bug in the OR-Library template parser, and a
 native-crash bug in the Classical GA's large-instance parallelism) that both affect
 these numbers and are documented there in full.
+
+---
+
+## ⚙️ Configuration & Tuning Parameters
+
+None of the benchmark scripts take command-line flags for tuning — every parameter is a
+plain Python variable or function argument. This section lists exactly where each one
+lives, so you can change it directly in the source rather than guessing.
+
+### Classical GA (`src/ga_solver.py`)
+
+`CFLPGASolver.solve()` signature and defaults:
+```python
+def solve(self, pop_size: int = 50, n_gen: int = 100, cx_pb: float = 0.8, mut_pb: float = 0.2)
+```
+
+The two benchmark scripts that use it override these defaults with their own constants:
+
+| Script | Instance size | Population | Generations | Crossover prob. | Mutation prob. |
+|---|---|:---:|:---:|:---:|:---:|
+| `benchmark_statistical.py` | small/medium (`cap71`–`cap134`) | `SMALL_POP = 120` | `SMALL_GEN = 100` | `0.8` (hardcoded in the call) | `SMALL_MUT = 0.3` |
+| `benchmark_statistical.py` | large (`capa4`/`capb4`/`capc4`) | `LARGE_POP = 40` | `LARGE_GEN = 60` | `0.8` | `LARGE_MUT = 0.2` |
+| `benchmark_large.py` | all 12 large instances | `50` (hardcoded inline) | `50` | `0.8` | `0.2` |
+
+The `SMALL_*`/`LARGE_*` constants sit near the top of `benchmark_statistical.py`
+(around line 55). Mutation is applied per-bit at probability `1.0 / num_facilities`
+inside `CFLPGASolver`'s DEAP setup (`ga_solver.py`, `mutFlipBit` registration) — the
+`mut_pb` argument above is the probability an *individual* is mutated at all, not the
+per-bit rate.
+
+### Hybrid ML-GA (`src/benchmark_hybrid_ga.py`)
+
+All constants are defined near the top of the file (lines 44–62):
+
+| Constant | Value | Controls |
+|---|:---:|---|
+| `N_RUNS` | `10` | Independent confidence-aware solve runs per instance |
+| `BOOTSTRAP_POP_SMALL` | `30` | Population size for the bootstrap phase (generates ML training data) — small/medium instances |
+| `BOOTSTRAP_GEN_SMALL` | `15` | **Number of generations used to create the ML training data** — small/medium instances |
+| `BOOTSTRAP_POP_LARGE` | `60` | Bootstrap population size — large instances |
+| `BOOTSTRAP_GEN_LARGE` | `40` | **Number of generations used to create the ML training data** — large instances |
+| `SMALL_POP` / `SMALL_GEN` | `120` / `100` | Solve-phase population/generations once the surrogate exists — small/medium instances |
+| `LARGE_POP` / `LARGE_GEN` | `100` / `100` | Solve-phase population/generations — large instances |
+| `WARMUP_FRACTION` | `0.15` | Fraction of solve-phase generations that always use the exact LP solver, regardless of the surrogate |
+
+To run only specific instances (skip the full 15), pass them as CLI arguments:
+`python src/benchmark_hybrid_ga.py cap71 capa4`.
+
+### Machine Learning Surrogate Model (`src/surrogate_model.py`)
+
+The model architecture is selected via the `model_type` constructor argument to
+`CFLPSurrogateModel` — one of `"random_forest"`, `"gradient_boosting"`, `"xgboost"`, or
+`"mlp"`. **The shipped benchmark results use only `"random_forest"`** — set in
+`benchmark_hybrid_ga.py`'s call to `pipeline.run(model_types=("random_forest",))`
+(line 135). The other three architectures are implemented and usable, but not part of
+the reported results.
+
+Each architecture's hyperparameters are hardcoded inside `_build_model()`:
+
+| Hyperparameter | Value | Meaning |
+|---|:---:|---|
+| `n_estimators` | `200` | Number of trees in the Random Forest |
+| `max_depth` | `15` | Maximum depth per tree |
+| `min_samples_leaf` | `1` | Minimum samples required at a leaf node |
+| `max_features` | `"sqrt"` | Features considered per split |
+| `random_state` | `42` | Reproducibility seed |
+| `n_jobs` | `-1` | Parallelize training across all CPU cores |
+
+Training itself is orchestrated by `SurrogateTrainingPipeline.run()` in
+`training_pipeline.py`, which does an 80/20 train/test split (`test_size=0.2`,
+`random_state=42`) unless a fixed external validation set is supplied.
+
+### Reproducibility
+
+All three benchmark scripts derive their per-run random seed from a `BASE_SEED = 42`
+constant plus the run index (`run_seed = BASE_SEED + run`), applied to Python's
+`random`, NumPy's RNG, and DEAP's internal random calls. Changing `BASE_SEED` and
+re-running will produce different (but still reproducible, for that new seed) results.
