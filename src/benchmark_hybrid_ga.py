@@ -3,7 +3,7 @@ benchmark_hybrid_ga.py
 =======================
 Phase 4: Re-benchmark. Evaluates the CORRECTED Hybrid ML-GA framework
 (bootstrap-mode GA-derived training data -> trained surrogate -> confidence_aware
-GA using the predicted-cost-vs-current-best decision logic) on the same 15
+GA using the predicted-cost-vs-current-best decision logic) on the same 40
 OR-Library CFLP instances and reference optimals used by benchmark_statistical.py,
 so results are directly comparable to the Classical GA baseline already on record
 in docs/statistical_benchmark_results.csv.
@@ -67,21 +67,56 @@ WARMUP_FRACTION = 0.15
 # (produced by preprocess_orlib.py, per Beasley 1988 Table 1), matching the reference
 # optimal values below and benchmark_large.py's ground_truths dict.
 INSTANCES = [
+    "cap41", "cap42", "cap43", "cap44",
+    "cap51",
+    "cap61", "cap62", "cap63", "cap64",
     "cap71", "cap72", "cap73", "cap74",
+    "cap81", "cap82", "cap83", "cap84",
+    "cap91", "cap92", "cap93", "cap94",
     "cap101", "cap102", "cap103", "cap104",
+    "cap111", "cap112", "cap113", "cap114",
+    "cap121", "cap122", "cap123", "cap124",
     "cap131", "cap132", "cap133", "cap134",
     "capa4", "capb4", "capc4",
 ]
 
+# cap41-cap134: Beasley's OR-Library capopt.txt (verified against the values
+# already on record for cap71-74/cap101-104/cap131-134). capa4/capb4/capc4:
+# Beasley 1988 Table 1, same source as benchmark_large.py's ground_truths dict.
 CFLP_OPTIMAL: Dict[str, float] = {
+    "cap41": 1040444.375,
+    "cap42": 1098000.450,
+    "cap43": 1153000.450,
+    "cap44": 1235500.450,
+    "cap51": 1025208.225,
+    "cap61": 932615.750,
+    "cap62": 977799.400,
+    "cap63": 1014062.050,
+    "cap64": 1045650.250,
     "cap71": 932615.750,
     "cap72": 977799.400,
     "cap73": 1010641.450,
     "cap74": 1034976.975,
+    "cap81": 838499.288,
+    "cap82": 910889.563,
+    "cap83": 975889.563,
+    "cap84": 1069369.525,
+    "cap91": 796648.438,
+    "cap92": 855733.500,
+    "cap93": 896617.538,
+    "cap94": 946051.325,
     "cap101": 796648.437,
     "cap102": 854704.200,
     "cap103": 893782.112,
     "cap104": 928941.750,
+    "cap111": 826124.713,
+    "cap112": 901377.213,
+    "cap113": 970567.750,
+    "cap114": 1063356.488,
+    "cap121": 793439.563,
+    "cap122": 852524.625,
+    "cap123": 895302.325,
+    "cap124": 946051.325,
     "cap131": 793439.562,
     "cap132": 851495.325,
     "cap133": 893076.712,

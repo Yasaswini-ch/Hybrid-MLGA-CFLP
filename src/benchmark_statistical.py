@@ -7,11 +7,13 @@ Runs the CFLP Genetic Algorithm N_RUNS times per instance and reports real stati
 All results are computed from actual GA solver runs. The only fixed values are
 the published OR-Library optimal costs, used solely as the reference "Optimal" column.
 
-Instances covered (Table 2 layout):
-  cap71, cap72, cap73, cap74          (16 facilities, 50 customers)
-  cap101, cap102, cap103, cap104      (25 facilities, 100 customers)
-  cap131, cap132, cap133, cap134      (50 facilities, 150 customers)
-  capa, capb, capc                    (100 facilities, 1000 customers)
+Instances covered (all 37 small/medium OR-Library capacitated warehouse location
+instances from Beasley 1988 Table 1, problem sets IV-XIII, plus the largest-capacity
+variant from each of the A/B/C families):
+  cap41-cap44, cap51, cap61-cap64, cap71-cap74   (16 facilities, 50 customers)
+  cap81-cap84, cap91-cap94, cap101-cap104        (25 facilities, 50 customers)
+  cap111-cap114, cap121-cap124, cap131-cap134    (50 facilities, 50 customers)
+  capa4, capb4, capc4                            (100 facilities, 1000 customers)
 
 Usage:
     .venv\\Scripts\\python src\\benchmark_statistical.py
@@ -67,23 +69,58 @@ LARGE_MUT = 0.2
 # from each family (produced by preprocess_orlib.py, per Beasley 1988 Table 1), which is
 # what the CFLP_OPTIMAL reference values below actually correspond to.
 INSTANCES = [
+    "cap41", "cap42", "cap43", "cap44",
+    "cap51",
+    "cap61", "cap62", "cap63", "cap64",
     "cap71", "cap72", "cap73", "cap74",
+    "cap81", "cap82", "cap83", "cap84",
+    "cap91", "cap92", "cap93", "cap94",
     "cap101", "cap102", "cap103", "cap104",
+    "cap111", "cap112", "cap113", "cap114",
+    "cap121", "cap122", "cap123", "cap124",
     "cap131", "cap132", "cap133", "cap134",
     "capa4", "capb4", "capc4"
 ]
 
-# Literature Optimal Values for comparison (capa4/capb4/capc4: Beasley 1988 Table 1,
-# same source as benchmark_large.py's ground_truths dict)
+# Literature Optimal Values for comparison. cap41-cap134: Beasley's OR-Library
+# capopt.txt (https://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/capopt.txt),
+# fetched and cross-checked directly against the values already on record here
+# for cap71-74/cap101-104/cap131-134 (exact match). capa4/capb4/capc4: Beasley
+# 1988 Table 1, same source as benchmark_large.py's ground_truths dict.
 CFLP_OPTIMAL: Dict[str, float] = {
+    "cap41": 1040444.375,
+    "cap42": 1098000.450,
+    "cap43": 1153000.450,
+    "cap44": 1235500.450,
+    "cap51": 1025208.225,
+    "cap61": 932615.750,
+    "cap62": 977799.400,
+    "cap63": 1014062.050,
+    "cap64": 1045650.250,
     "cap71": 932615.750,
     "cap72": 977799.400,
     "cap73": 1010641.450,
     "cap74": 1034976.975,
+    "cap81": 838499.288,
+    "cap82": 910889.563,
+    "cap83": 975889.563,
+    "cap84": 1069369.525,
+    "cap91": 796648.438,
+    "cap92": 855733.500,
+    "cap93": 896617.538,
+    "cap94": 946051.325,
     "cap101": 796648.437,
     "cap102": 854704.200,
     "cap103": 893782.112,
     "cap104": 928941.750,
+    "cap111": 826124.713,
+    "cap112": 901377.213,
+    "cap113": 970567.750,
+    "cap114": 1063356.488,
+    "cap121": 793439.563,
+    "cap122": 852524.625,
+    "cap123": 895302.325,
+    "cap124": 946051.325,
     "cap131": 793439.562,
     "cap132": 851495.325,
     "cap133": 893076.712,
