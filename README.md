@@ -30,7 +30,7 @@ This project has been comprehensively audited, debugged, and documented. **Start
 - **[BUG_FIXES_AND_CORRECTIONS.md](docs/BUG_FIXES_AND_CORRECTIONS.md)** — What bugs existed, how they were fixed, and how to verify
 - **[IMPLEMENTATION_ARCHITECTURE.md](docs/IMPLEMENTATION_ARCHITECTURE.md)** — Complete guide to all modules, algorithms, and how to run each solver
 - **[REPRODUCIBILITY_AND_VERIFICATION.md](docs/REPRODUCIBILITY_AND_VERIFICATION.md)** — How to reproduce results and run verification tests
-- **[PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md)** — Full Hybrid ML-GA re-benchmark results on all 15 OR-Library instances, including an honest analysis of where it currently underperforms and why
+- **[PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md)** — Full Hybrid ML-GA re-benchmark results on 15 of the 40 OR-Library instances, including an honest analysis of where it currently underperforms and why
 
 ### Project Status:
 - ✅ **10 real bugs found and fixed across two audit rounds** — 6 in the original forensic audit (see [BUG_FIXES_AND_CORRECTIONS.md](docs/BUG_FIXES_AND_CORRECTIONS.md)), plus 4 more found in a final pre-submission audit: a data-corruption bug in the OR-Library template parser, a native-crash bug in the Classical GA's large-instance parallel evaluator, and a genuine MILP objective-formula bug — which also revealed that one of the original 6 fixes (the June audit's "MILP transport cost" fix) had itself been backwards and is now reverted (see [PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md))
@@ -39,7 +39,7 @@ This project has been comprehensively audited, debugged, and documented. **Start
 - ✅ **Hybrid ML-GA can now bootstrap its own training data** — no pre-trained model required to start (see [§8](#-hybrid-ml-ga-workflow-latest))
 - ✅ **Predicted-cost decision logic corrected** to match the intended design: exact verification only when a prediction suggests a new best solution
 - ✅ **Adaptive retraining is quality-gated** — a retraining round that produces a worse model is automatically rejected, never silently adopted
-- ✅ **Re-benchmarked on all 15 OR-Library instances** with the corrected implementation (see [§9](#-latest-verified-benchmark-results))
+- ✅ **Re-benchmarked on all 40 OR-Library instances** with the corrected implementation (see [§9](#-latest-verified-benchmark-results))
 - ⚠️ **Honest, known limitation**: on the 3 largest instances (100 facilities, 1000 customers), CBC cannot reliably prove MILP optimality and the Hybrid ML-GA currently trails the Classical GA — documented, not hidden (see [§9](#-latest-verified-benchmark-results))
 
 ---
@@ -74,7 +74,7 @@ Subject to:
 ```text
 CAPL/
 ├── data/
-│   ├── raw/                  # Beasley OR-Library text files (cap71 ... cap134, capa ... capc)
+│   ├── raw/                  # Beasley OR-Library text files (cap41 ... cap134, capa ... capc)
 │   └── processed/            # Empty by default -- generated here on demand by training_pipeline.py
 │                              # or the benchmark scripts (surrogate .pkl models, training-corpus .npz caches).
 │                              # Not required to be pre-populated; nothing in src/ depends on files
@@ -96,8 +96,8 @@ CAPL/
 │   ├── dataset_generator.py  # Synthesizes datasets for testing; de-duplicates GA-derived training samples
 │   ├── evaluation_metrics.py # Evaluates ML surrogate MAPE accuracy
 │   ├── preprocess_orlib.py   # One-time utility that split capa/capb/capc into the capa1-4/capb1-4/capc1-4 variants used by benchmark_large.py
-│   ├── benchmark_statistical.py # Classical GA benchmark across all 15 OR-Library instances (30 runs each) — Table 2 results
-│   ├── benchmark_hybrid_ga.py   # Hybrid ML-GA benchmark across all 15 OR-Library instances (bootstrap + confidence-aware, 10 runs each)
+│   ├── benchmark_statistical.py # Classical GA benchmark across all 40 OR-Library instances (30 runs each for the 37 small/medium, 10 for the 3 large) — Table 2 results
+│   ├── benchmark_hybrid_ga.py   # Hybrid ML-GA benchmark across all 40 OR-Library instances (bootstrap + confidence-aware, 10 runs each)
 │   ├── benchmark_large.py    # MILP vs. Greedy vs. Classical GA on the split large-scale variants (capa1-4, capb1-4, capc1-4)
 │   │
 │   │   -- NOT used by the 3 benchmark scripts above; present but not part of the benchmarked pipeline --
@@ -113,8 +113,8 @@ CAPL/
 │   └── active_learning.py    # Quality-gated adaptive retraining loop (rejects worse models, never adopts
 │                              # them). Standalone module; not imported by any of the 3 benchmark scripts.
 ├── docs/                     # Scientific reports, results spreadsheet (.csv), and graphs (.png)
-│   ├── statistical_benchmark_results.csv  # Classical GA results (Optimal vs GA stats, 15 instances)
-│   ├── hybrid_benchmark_results.csv       # Hybrid ML-GA results on the same 15 instances (fresh, corrected implementation)
+│   ├── statistical_benchmark_results.csv  # Classical GA results (Optimal vs GA stats, 40 instances)
+│   ├── hybrid_benchmark_results.csv       # Hybrid ML-GA results on the same 40 instances (fresh, corrected implementation)
 │   ├── PHASE_4_HYBRID_BENCHMARK_REPORT.md # Full write-up comparing Hybrid ML-GA vs. Classical GA, with root-cause analysis
 │   ├── large_benchmark_results.csv # Large-scale comparison output results
 │   ├── hybrid_ga_comparison.png    # Performance comparison plot
@@ -165,14 +165,14 @@ CAPL/
 A first-time user can run the benchmark scripts out-of-the-box. The scripts automatically handle loading raw data, performing the optimizations, and generating the outputs.
 
 ### Step 1: Run the Statistical Classical GA Benchmark (Produces Table 2 Statistics)
-This script runs the classical GA on all 15 instances (`cap71`-`cap134`, and `capa4`/`capb4`/`capc4`) across 30 random seeds for the small/medium instances (10 seeds for the 3 large ones — see note below), reproducing the exact publication table:
+This script runs the classical GA on all 40 instances (`cap41`-`cap134`, and `capa4`/`capb4`/`capc4`) across 30 random seeds for the small/medium instances (10 seeds for the 3 large ones — see note below), reproducing the exact publication table:
 ```bash
 python src/benchmark_statistical.py
 ```
 * **What it outputs**: Prints a formatted statistical markdown table directly to the console and generates:
   * `docs/statistical_benchmark_results.csv` (complete spreadsheet logs)
   * `docs/statistical_benchmark_results.png` (gap performance bar chart)
-* **Execution Time**: several hours end-to-end, dominated by the 3 large (100-facility) instances — small/medium instances alone take ~8 minutes.
+* **Execution Time**: several hours end-to-end, dominated by the 3 large (100-facility) instances — the 37 small/medium instances alone take roughly 20-30 minutes under normal (uncontended) CPU load.
 * **Note on `capa`/`capb`/`capc`**: the bare `capa.txt`/`capb.txt`/`capc.txt` files distributed by Beasley's OR-Library are unfilled *templates* (every facility's capacity is the literal text `"capacity"`, not a number) and are not used directly. `parser.py` will raise a clear error if you try to parse one directly. The benchmark uses `capa4`/`capb4`/`capc4`, the correctly-instantiated variants produced by `preprocess_orlib.py` (see Step 2), which already exist in `data/raw/`.
 
 ### Step 2: Run the Large-Scale Capacitated Benchmark
@@ -191,7 +191,7 @@ python src/training_pipeline.py
 ```
 
 ### Step 4: Run the Hybrid ML-GA Benchmark (No Pre-Trained Model Needed)
-This script runs the full Hybrid ML-GA pipeline — bootstrap its own training data, train a surrogate, then solve with the corrected predicted-cost decision logic — on all 15 OR-Library instances, directly comparable to Step 1's Classical GA results:
+This script runs the full Hybrid ML-GA pipeline — bootstrap its own training data, train a surrogate, then solve with the corrected predicted-cost decision logic — on all 40 OR-Library instances, directly comparable to Step 1's Classical GA results:
 ```bash
 python src/benchmark_hybrid_ga.py
 ```
@@ -290,20 +290,21 @@ to always be the accepted (best-known) model, never a rejected one.
 
 ## 📊 Latest Verified Benchmark Results
 
-Both the Classical GA and the (corrected) Hybrid ML-GA were run fresh on all 15
-OR-Library CFLP instances. Full numbers: [docs/statistical_benchmark_results.csv](docs/statistical_benchmark_results.csv) and [docs/hybrid_benchmark_results.csv](docs/hybrid_benchmark_results.csv). Full analysis: [docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md).
+Both the Classical GA and the (corrected) Hybrid ML-GA were run fresh on all 40
+OR-Library CFLP instances. Full numbers: [docs/statistical_benchmark_results.csv](docs/statistical_benchmark_results.csv) and [docs/hybrid_benchmark_results.csv](docs/hybrid_benchmark_results.csv). Full analysis: [docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md) (covers the original 15-instance subset; the full 40-instance breakdown is in [SIP_Internship_Report.docx](SIP_Internship_Report.docx)).
 
 **Best-run optimality gap versus the published OR-Library optimal cost:**
 
 | Instance group | Facilities | Classical GA | Hybrid ML-GA |
 |:---|:---:|:---:|:---:|
-| cap71 – cap74   | 16  | 0.00% | 0.00% |
-| cap101 – cap104 | 25  | 0.00% | 0.00% |
-| cap131 – cap134 | 50  | 0.00% | 0.00% – 0.58% |
+| cap41 – cap74 (13 instances)   | 16  | 0.00% | 0.00% |
+| cap81 – cap104 (12 instances)  | 25  | 0.00% | 0.00% |
+| cap111 – cap134 (12 instances) | 50  | 0.00% – 0.26% | 0.06% – 1.36% |
 | capa4, capb4, capc4 | 100 | 1.9% – 4.7% | 9.8% – 18.7% |
 
 **Summary:** On small and medium instances, the Hybrid ML-GA matches the Classical GA
-almost exactly. On the three largest instances (100 facilities, 1000 customers), it
+closely (both stay within roughly 1.4% of the published optimum, with Classical GA
+consistently a bit tighter). On the three largest instances (100 facilities, 1000 customers), it
 currently trails behind. This was investigated directly rather than assumed — see
 [docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md) for
 the full root-cause analysis, including two real bugs found and fixed during a final
@@ -330,7 +331,7 @@ The two benchmark scripts that use it override these defaults with their own con
 
 | Script | Instance size | Population | Generations | Crossover prob. | Mutation prob. |
 |---|---|:---:|:---:|:---:|:---:|
-| `benchmark_statistical.py` | small/medium (`cap71`–`cap134`) | `SMALL_POP = 120` | `SMALL_GEN = 100` | `0.8` (hardcoded in the call) | `SMALL_MUT = 0.3` |
+| `benchmark_statistical.py` | small/medium (`cap41`–`cap134`) | `SMALL_POP = 120` | `SMALL_GEN = 100` | `0.8` (hardcoded in the call) | `SMALL_MUT = 0.3` |
 | `benchmark_statistical.py` | large (`capa4`/`capb4`/`capc4`) | `LARGE_POP = 40` | `LARGE_GEN = 60` | `0.8` | `LARGE_MUT = 0.2` |
 | `benchmark_large.py` | all 12 large instances | `GA_POP = 50` | `GA_GEN = 50` | `GA_CX_PB = 0.8` | `GA_MUT_PB = 0.2` |
 

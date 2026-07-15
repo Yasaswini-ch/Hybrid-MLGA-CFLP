@@ -164,7 +164,7 @@ best_cost, best_y, history = ga_solver.solve(
 ### Approach 5: Hybrid ML+GA (VALIDATED — see Chapter 16 of the Complete Project Guide)
 
 **Solver**: `src/hybrid_ga.py` → `HybridMLGASolver` class  
-**Status**: Fully implemented, tested end-to-end, and benchmarked on all 15 OR-Library
+**Status**: Fully implemented, tested end-to-end, and benchmarked on all 40 OR-Library
 instances (`docs/hybrid_benchmark_results.csv`, `docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md`).  
 **Concept**: Replace expensive LP fitness evaluations with fast ML predictions
 
@@ -569,7 +569,7 @@ python src/benchmark_large.py
 **File**: `src/benchmark_hybrid_ga.py`
 
 **What It Does**:
-- Runs the full Hybrid ML-GA pipeline on all 15 OR-Library instances: bootstrap mode
+- Runs the full Hybrid ML-GA pipeline on all 40 OR-Library instances: bootstrap mode
   generates its own training data, trains a Random Forest surrogate, then solves 10
   times per instance using the corrected confidence-aware decision rule.
 - Directly comparable, column-for-column, with `docs/statistical_benchmark_results.csv`

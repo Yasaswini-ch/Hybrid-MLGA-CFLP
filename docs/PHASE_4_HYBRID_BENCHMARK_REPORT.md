@@ -4,7 +4,7 @@
 
 Evaluate the CORRECTED Hybrid ML-GA framework (Phase 1 bootstrap-mode GA-derived
 training data + Phase 2 predicted-cost-vs-current-best decision logic) on the
-same 15 OR-Library CFLP instances used for the Classical GA baseline
+same 40 OR-Library CFLP instances used for the Classical GA baseline
 (`docs/statistical_benchmark_results.csv`), so the two are directly comparable.
 
 This satisfies the mentor's fifth objective component: *"the effectiveness of
@@ -31,11 +31,11 @@ For each instance:
    cost is below the current best.
 4. Report Best / Average / Worst / Std Dev / Gap vs. literature optimal.
 
-Small/medium instances (cap71–cap134, 16–50 facilities): bootstrap pop=30/gen=15,
+Small/medium instances (cap41–cap134, 16–50 facilities): bootstrap pop=30/gen=15,
 solve pop=120/gen=100. Large instances (capa4/capb4/capc4, 100 facilities/1000
 customers): bootstrap pop=60/gen=40, solve pop=100/gen=100.
 
-The Classical GA baseline uses the same 15 instances: pop=120/gen=100/30 runs
+The Classical GA baseline uses the same 40 instances: pop=120/gen=100/30 runs
 for small/medium instances, and pop=40/gen=60/**10 runs** for the 3 large
 instances (reduced from the original pop=100/gen=100/30 runs — see the
 ThreadPool bug below for why).
@@ -48,14 +48,39 @@ prior work.
 
 | Instance | Classical Best Gap% | Hybrid Best Gap% | Classical Avg Gap% | Hybrid Avg Gap% |
 |---|---|---|---|---|
+| cap41  | 0.0000 | 0.0000 | 0.0000 | 0.0174 |
+| cap42  | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| cap43  | 0.0000 | 0.0000 | 0.0000 | 0.1519 |
+| cap44  | 0.0000 | 0.0000 | 0.0000 | 0.1418 |
+| cap51  | 0.0000 | 0.0000 | 0.0214 | 0.0000 |
+| cap61  | 0.0000 | 0.0000 | 0.0000 | 0.0170 |
+| cap62  | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| cap63  | 0.0000 | 0.0000 | 0.0158 | 0.0798 |
+| cap64  | 0.0000 | 0.0000 | 0.0482 | 0.0723 |
 | cap71  | 0.0000 | 0.0000 | 0.0000 | 0.0170 |
-| cap72  | 0.0000 | 0.0000 | -0.0000 | 0.0000 |
+| cap72  | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
 | cap73  | 0.0000 | 0.0000 | 0.0061 | 0.0363 |
 | cap74  | 0.0000 | 0.0000 | 0.0088 | 0.0265 |
+| cap81  | 0.0000 | 0.0000 | 0.0519 | 0.1985 |
+| cap82  | 0.0000 | 0.0000 | 0.1353 | 0.4677 |
+| cap83  | 0.0000 | 0.0000 | 0.2606 | 0.6748 |
+| cap84  | 0.0000 | 0.0000 | 0.4051 | 0.5483 |
+| cap91  | 0.0000 | 0.0000 | 0.0533 | 0.0680 |
+| cap92  | 0.0000 | 0.0000 | 0.0350 | 0.0558 |
+| cap93  | 0.0000 | 0.0000 | 0.0544 | 0.0881 |
+| cap94  | 0.0000 | 0.0000 | 0.0515 | 0.1502 |
 | cap101 | 0.0000 | 0.0000 | 0.0520 | 0.0570 |
 | cap102 | 0.0000 | 0.0000 | 0.0358 | 0.0941 |
 | cap103 | 0.0000 | 0.0000 | 0.0473 | 0.0638 |
 | cap104 | 0.0000 | 0.0000 | 0.0608 | 0.0938 |
+| cap111 | 0.0000 | 1.3585 | 0.4242 | 1.8439 |
+| cap112 | 0.0000 | 0.3562 | 0.5209 | 1.9669 |
+| cap113 | 0.0834 | 0.9798 | 0.7436 | 1.7202 |
+| cap114 | 0.2613 | 1.2106 | 1.2693 | 2.2163 |
+| cap121 | 0.0000 | 0.6893 | 0.4038 | 1.3668 |
+| cap122 | 0.0000 | 0.0895 | 0.2923 | 0.7598 |
+| cap123 | 0.0000 | 0.7791 | 0.1654 | 1.3792 |
+| cap124 | 0.0000 | 0.3204 | 0.2062 | 1.4963 |
 | cap131 | 0.0000 | 0.3767 | 0.4286 | 0.9613 |
 | cap132 | 0.0000 | 0.0896 | 0.2474 | 1.0623 |
 | cap133 | 0.0000 | 0.5767 | 0.1346 | 1.1550 |
@@ -66,11 +91,26 @@ prior work.
 
 ## Honest Assessment
 
-**Small/medium instances (cap71–cap134, 16–50 facilities): Hybrid ML-GA is competitive.**
-Best-run gaps are 0–0.58%, essentially matching the classical GA's near-perfect
-performance on this size class. Average gaps (0.02–1.27%) are slightly worse
-than classical GA's (0–0.43%), reflecting the added variance from surrogate
+**Small/medium instances (cap41–cap134, 16–50 facilities): Hybrid ML-GA is competitive.**
+Best-run gaps are 0–1.36%, close to the classical GA's near-perfect
+performance on this size class (0–0.26%). Average gaps (0–2.22%) are somewhat worse
+than classical GA's (0–1.27%), reflecting the added variance from surrogate
 approximation, but remain small in absolute terms.
+
+**Surrogate fit quality, reported honestly:** across all 40 instances, the
+Random Forest surrogate's held-out R² is 0.68 or higher on 36 instances,
+reaching 0.99 on the 3 large instances. On the remaining 4 (cap61, cap62,
+cap63, and especially cap83), R² is degenerate or strongly negative (as low as
+-3.6e10 on cap83) — traced to one or more chromosomes with extreme,
+heavily capacity-penalized costs surviving into that instance's small
+(104–130 sample) bootstrap-derived training corpus, which the model could not
+generalize from on the held-out split. This did not translate into worse final
+solutions on those 4 instances (cap83's own best-run gap is effectively 0%,
+average-run gap 0.67%, in line with its neighbors), because the
+confidence_aware decision rule only ever acts on a surrogate prediction after
+exact LP verification confirms it actually beats the current best — a bad
+surrogate fit is filtered out by that gate rather than propagating into the
+reported result.
 
 **Large instances (capa4/capb4/capc4, 100 facilities/1000 customers): Hybrid ML-GA
 underperforms Classical GA.** Best gaps of 9.8–18.7% vs. classical GA's
@@ -100,7 +140,7 @@ insufficient for the problem scale.
 
 ## What This Confirms
 
-- **Phase 1 (GA-derived sampling) works end-to-end on all 15 instances**,
+- **Phase 1 (GA-derived sampling) works end-to-end on all 40 instances**,
   including the large ones, without any code changes needed — confirming
   bootstrap mode's scalability.
 - **Phase 2 (predicted-cost-vs-best decision logic) is active and functioning**
