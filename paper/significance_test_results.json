@@ -1,0 +1,42 @@
+{
+  "small_medium (16-25 facilities)": {
+    "n_instances": 25,
+    "n_pairs": 250,
+    "mean_classical_gap_pct": 0.05496776172095712,
+    "mean_hybrid_gap_pct": 0.12479982073434548,
+    "better_method": "classical",
+    "wilcoxon_statistic": 8040.5,
+    "p_value": 0.014193650691662316,
+    "significant_at_0.05": true
+  },
+  "large50 (50 facilities)": {
+    "n_instances": 12,
+    "n_pairs": 120,
+    "mean_classical_gap_pct": 0.3897961708407957,
+    "mean_hybrid_gap_pct": 1.4332640651944297,
+    "better_method": "classical",
+    "wilcoxon_statistic": 209.0,
+    "p_value": 3.27187261869935e-19,
+    "significant_at_0.05": true
+  },
+  "xlarge (100 facilities)": {
+    "n_instances": 3,
+    "n_pairs": 30,
+    "mean_classical_gap_pct": 10.3752651629833,
+    "mean_hybrid_gap_pct": 19.59284231983853,
+    "better_method": "classical",
+    "wilcoxon_statistic": 14.0,
+    "p_value": 2.0489096641540527e-07,
+    "significant_at_0.05": true
+  },
+  "overall (all 40)": {
+    "n_instances": 40,
+    "n_pairs": 400,
+    "mean_classical_gap_pct": 0.9294385895515843,
+    "mean_hybrid_gap_pct": 1.9774422815051846,
+    "better_method": "classical",
+    "wilcoxon_statistic": 10886.5,
+    "p_value": 1.2293333351137777e-25,
+    "significant_at_0.05": true
+  }
+}

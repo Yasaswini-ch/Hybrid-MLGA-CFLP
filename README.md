@@ -1,6 +1,47 @@
 # Hybrid ML-GA Solver for Capacitated Facility Location Problem (CFLP)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21917114.svg)](https://doi.org/10.5281/zenodo.21917114)
+
 An academic and engineering project aimed at building a high-performance, hybrid solver integrating **Machine Learning (ML)** and **Genetic Algorithms (GA)** to solve Beasley's OR-Library benchmarks for the Capacitated Facility Location Problem (CFLP) and the Uncapacitated Facility Location Problem (UFLP).
+
+## 📄 Paper
+
+The full write-up of this work is published as a preprint:
+
+> **A Surrogate-Assisted Genetic Algorithm for the Capacitated Facility Location Problem: Extending Linear Programming–Genetic Algorithm Hybridisation with a Machine Learning Fitness Surrogate**
+> Yasaswini Chebolu, Gayatri Vidya Parishad College of Engineering for Women
+> Zenodo, 2026. DOI: [10.5281/zenodo.21917114](https://doi.org/10.5281/zenodo.21917114)
+
+LaTeX source, figures, and all supporting data live in [`paper/`](paper/).
+
+<details>
+<summary><b>BibTeX</b></summary>
+
+```bibtex
+@misc{chebolu2026surrogate,
+  author       = {Chebolu, Yasaswini},
+  title        = {A Surrogate-Assisted Genetic Algorithm for the Capacitated
+                  Facility Location Problem: Extending Linear Programming--Genetic
+                  Algorithm Hybridisation with a Machine Learning Fitness Surrogate},
+  year         = {2026},
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.21917114},
+  url          = {https://doi.org/10.5281/zenodo.21917114}
+}
+```
+</details>
+
+### Headline findings
+
+| Finding | Detail |
+|:---|:---|
+| Both solvers find the published optimum | On every instance up to 25 facilities (best run) |
+| Classical GA is significantly better overall | Wilcoxon on 400 matched paired runs, all size groups (p < 0.05) — but the gap is *practically* negligible on small/medium (0.055% vs 0.125%) |
+| **Surrogate quality ≠ solution quality** | Swapping Random Forest → Gradient Boosting (worst-case MAPE 948,600% → 5.5%) gave **bit-identical results on 33 of 40 instances** |
+| Active learning did not close the gap | Corpus grew ~10x, R² improved on all 3 large instances, gap improved on only 1 |
+| R² is a misleading metric here | RF scores R²=0.998 on cap41 while its MAPE is 521,100% — Big-M penalties dominate the variance |
+
+The last three are **negative results**, and they converge on one conclusion: because the confidence-aware policy only updates the incumbent *after* exact LP verification, the surrogate can discard good candidates but never contribute one. **Its benefit is speed, not solution quality.**
 
 ---
 
@@ -38,9 +79,16 @@ This project has been comprehensively audited, debugged, and documented. **Start
 - ✅ **Research-ready** (defensive documentation, verification tests)
 - ✅ **Hybrid ML-GA can now bootstrap its own training data** — no pre-trained model required to start (see [§8](#-hybrid-ml-ga-workflow-latest))
 - ✅ **Predicted-cost decision logic corrected** to match the intended design: exact verification only when a prediction suggests a new best solution
-- ✅ **Adaptive retraining is quality-gated** — a retraining round that produces a worse model is automatically rejected, never silently adopted
+- ✅ **Adaptive retraining is quality-gated** — a retraining round that produces a worse model is automatically rejected, never silently adopted (⚠️ but see the August 2026 finding below: the gate scores R² against a *fixed* validation set from the initial corpus, which turns out to be a real limitation)
 - ✅ **Re-benchmarked on all 40 OR-Library instances** with the corrected implementation (see [§9](#-latest-verified-benchmark-results))
 - ⚠️ **Honest, known limitation**: on the 3 largest instances (100 facilities, 1000 customers), CBC cannot reliably prove MILP optimality and the Hybrid ML-GA currently trails the Classical GA — documented, not hidden (see [§9](#-latest-verified-benchmark-results))
+
+#### 🔬 August 2026 — three follow-up experiments (see [`paper/paper.pdf`](paper/paper.pdf))
+All benchmark numbers below still stand; what changed is one *explanation*, plus two new findings:
+- ❌ **The "insufficient sampling budget" explanation for the large-instance gap was tested and NOT supported.** Active learning grew the corpus ~10x and improved R² on all 3 large instances, yet the gap improved on only 1 of 3 (worsened on 2). Details: [PHASE_4_HYBRID_BENCHMARK_REPORT.md §Root Cause](docs/PHASE_4_HYBRID_BENCHMARK_REPORT.md#root-cause-of-the-hybrid-ml-ga-large-instance-gap)
+- ⚠️ **R² is a misleading metric here** — Random Forest scores R²=0.998 on cap41 while its MAPE on the same predictions is 521,100%, because Big-M penalty values dominate the variance R² normalizes against.
+- 🔑 **Biggest finding — surrogate quality barely affects solution quality.** Gradient Boosting is a far better surrogate than the Random Forest used for all reported results (worst-case MAPE 5.5% vs 948,600%; ~60x faster inference). But re-running the entire benchmark with it produced **no significant change (p=0.33) and bit-identical results on 33 of 40 instances**. Reason: the confidence-aware rule only updates the incumbent *after* exact LP verification, so the surrogate can skip good candidates but can never contribute a solution the exact solver hasn't confirmed. **The surrogate buys speed, not solution quality** — and improving the model can't change that; only changing the decision rule could.
+- 📊 **Statistical significance added** (Wilcoxon, 400 matched paired runs): Classical GA is significantly better in every size group — though on small/medium the difference is practically negligible (0.055% vs 0.125% mean gap; both hit the exact optimum in their best run).
 
 ---
 
@@ -120,6 +168,25 @@ CAPL/
 │   ├── hybrid_ga_comparison.png    # Performance comparison plot
 │   ├── cap41_ga_convergence.png    # Classical GA fitness improvement graph
 │   └── cap41_hybrid_convergence.png# Hybrid GA fitness improvement graph
+├── paper/                    # The published preprint (DOI 10.5281/zenodo.21917114) + all its data
+│   ├── paper.tex / paper.pdf       # LaTeX source and compiled paper (IEEE format, 12 pp.)
+│   ├── *.png                       # The 7 figures the paper embeds (needed to recompile)
+│   │
+│   │   -- Experiment scripts (each regenerates the data file(s) below it) --
+│   ├── generate_all_convergence.py # 1 classical + 1 hybrid run per instance, all 40
+│   │     └── all_convergence_data.csv, all_instances_*_convergence_grid.png
+│   ├── collect_raw_runs.py         # 10 matched-seed runs per solver per instance
+│   │     └── raw_runs_<instance>.json (40 files)
+│   ├── run_significance_tests.py   # Wilcoxon signed-rank tests over those matched runs
+│   │     └── raw_runs_all.csv, significance_test_results.json
+│   ├── compare_surrogates.py       # RF / GradBoost / XGBoost / MLP on identical corpora
+│   │     └── surrogate_comparison.csv
+│   ├── collect_gb_runs.py          # Full re-benchmark under a Gradient Boosting surrogate
+│   │     └── gb_runs_<instance>.json (40 files)
+│   ├── compare_rf_vs_gb.py         # Controlled RF-vs-GB comparison + Wilcoxon
+│   │     └── rf_vs_gb_comparison.csv, rf_vs_gb_tests.json
+│   └── run_active_learning_experiment.py # 5 active-learning rounds on the 3 large instances
+│         └── active_learning_progress.json
 └── requirements.txt          # Python library dependencies
 ```
 
@@ -270,6 +337,18 @@ Otherwise, the prediction is trusted directly. This means most of the population
 evaluated in microseconds instead of milliseconds, while every genuinely promising
 candidate still gets verified with the exact method before being trusted.
 
+> 🔑 **This rule is the single most consequential design choice in the project, and the
+> paper's main finding is about what it implies.** Because the incumbent best is only ever
+> updated *after* an exact LP verification, the surrogate can cause a good candidate to be
+> silently skipped (prediction too high), but it can **never** contribute a solution the
+> exact solver hasn't already confirmed (prediction too low is caught by the gate).
+> Surrogate accuracy is therefore largely **decoupled** from final solution quality —
+> confirmed empirically by swapping in a surrogate five orders of magnitude more accurate
+> and getting **bit-identical results on 33 of 40 instances**. The rule is what makes the
+> framework *safe* (a broken surrogate cannot corrupt a result), and also what caps its
+> solution quality at that of the plain exact-LP GA. See §IV-H of the
+> [paper](https://doi.org/10.5281/zenodo.21917114).
+
 ### Optional Stage 4 — Adaptive Retraining (Quality-Gated)
 
 ```python
@@ -285,6 +364,16 @@ best model seen in any earlier round — evaluated on a fixed validation set tha
 changes, so the comparison is always fair. A round that produces a worse model is
 rejected automatically, and the file every other part of the project loads is guaranteed
 to always be the accepted (best-known) model, never a rejected one.
+
+> ⚠️ **This was tested on the 3 large instances and did not close the gap.** Five rounds
+> grew the corpus ~10x (718 → 7,342 samples on capa4) and improved R² on all three, yet the
+> best-run gap improved on only one (capb4 12.08% → 8.44%) and *worsened* on the other two
+> (capa4 18.65% → 25.59%, capc4 9.82% → 14.86%). Two likely reasons, neither yet separated:
+> the fixed validation set rewards fit to the *initial* sampling distribution while the
+> corpus drifts toward wherever the search has travelled; and R² is a weak accuracy proxy
+> here (see the R² caveat above). Both suggest the gate should use a **rolling** validation
+> set scored by **MAPE rather than R²** — untested. Raw data:
+> [`paper/active_learning_progress.json`](paper/active_learning_progress.json).
 
 ---
 
@@ -383,6 +472,19 @@ The model architecture is selected via the `model_type` constructor argument to
 `CFLPSurrogateModel` — one of `"random_forest"`, `"gradient_boosting"`, `"xgboost"`, or
 `"mlp"`. **The shipped benchmark results use only `"random_forest"`** — set in
 `benchmark_hybrid_ga.py`'s call to `pipeline.run(model_types=("random_forest",))`
+
+> ⚠️ **August 2026: `"random_forest"` is a poor surrogate — but switching won't
+> improve your results.** A four-way comparison across all 40 instances on
+> identical corpora (`paper/surrogate_comparison.csv`) found Random Forest is the
+> weakest of the three tree-based options on *both* accuracy and speed —
+> worst-case MAPE of 948,600% (vs. Gradient Boosting's 5.5%) and a median
+> inference speedup of only 5.2x over the exact LP (vs. Gradient Boosting's 320x).
+> **However**, re-running the full benchmark with `"gradient_boosting"` produced
+> no significant change in solution quality (p=0.33 overall) and *bit-identical*
+> results on 33 of 40 instances (`paper/rf_vs_gb_comparison.csv`) — because the
+> confidence-aware decision rule decouples surrogate accuracy from final solution
+> quality. Switch to `"gradient_boosting"` for **speed** and for a sane MAPE, but
+> do not expect better solutions from it.
 (line 135). The other three architectures are implemented and usable, but not part of
 the reported results.
 

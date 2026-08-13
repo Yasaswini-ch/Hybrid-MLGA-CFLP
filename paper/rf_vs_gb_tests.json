@@ -1,0 +1,58 @@
+{
+  "small_medium (16-25 fac)": {
+    "n_instances": 25,
+    "n_pairs": 250,
+    "mean_gap_classical": 0.05496776172095712,
+    "mean_gap_rf": 0.12479982073434548,
+    "mean_gap_gb": 0.12036871785601287,
+    "mean_bestrun_gap_classical": -6.6231950708238196e-09,
+    "mean_bestrun_gap_rf": -6.623204825779327e-09,
+    "mean_bestrun_gap_gb": -6.623204825779327e-09,
+    "wilcoxon_rf_vs_gb_p": 0.06559969214707187,
+    "gb_better_than_rf": true,
+    "wilcoxon_gb_vs_classical_p": 0.04197015152699422,
+    "gb_better_than_classical": false
+  },
+  "large50 (50 fac)": {
+    "n_instances": 12,
+    "n_pairs": 120,
+    "mean_gap_classical": 0.3897961708407957,
+    "mean_gap_rf": 1.4332640651944297,
+    "mean_gap_gb": 1.4332640651944297,
+    "mean_bestrun_gap_classical": 0.03791385357602331,
+    "mean_bestrun_gap_rf": 0.5735121968567892,
+    "mean_bestrun_gap_gb": 0.5735121968567892,
+    "wilcoxon_rf_vs_gb_p": 1.0,
+    "gb_better_than_rf": false,
+    "wilcoxon_gb_vs_classical_p": 3.27187261869935e-19,
+    "gb_better_than_classical": false
+  },
+  "xlarge (100 fac)": {
+    "n_instances": 3,
+    "n_pairs": 30,
+    "mean_gap_classical": 10.3752651629833,
+    "mean_gap_rf": 19.59284231983853,
+    "mean_gap_gb": 19.026237878949708,
+    "mean_bestrun_gap_classical": 3.412287878132851,
+    "mean_bestrun_gap_rf": 13.519123058211653,
+    "mean_bestrun_gap_gb": 14.519116847233951,
+    "wilcoxon_rf_vs_gb_p": 0.39305018074810505,
+    "gb_better_than_rf": true,
+    "wilcoxon_gb_vs_classical_p": 1.862645149230957e-08,
+    "gb_better_than_classical": false
+  },
+  "overall (all 40)": {
+    "n_instances": 40,
+    "n_pairs": 400,
+    "mean_gap_classical": 0.9294385895515843,
+    "mean_gap_rf": 1.9774422815051846,
+    "mean_gap_gb": 1.9321775091395648,
+    "mean_bestrun_gap_classical": 0.2672957427932739,
+    "mean_bestrun_gap_rf": 1.1859878842834077,
+    "mean_bestrun_gap_gb": 1.26098741846008,
+    "wilcoxon_rf_vs_gb_p": 0.3255741797451528,
+    "gb_better_than_rf": true,
+    "wilcoxon_gb_vs_classical_p": 4.213813009611077e-26,
+    "gb_better_than_classical": false
+  }
+}

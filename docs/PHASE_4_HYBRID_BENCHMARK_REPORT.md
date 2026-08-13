@@ -18,6 +18,44 @@ benchmark instances."*
 > in full in [§Bugs Found and Fixed During Final Audit](#bugs-found-and-fixed-during-final-audit)
 > below. All numbers in this report are from the corrected implementation.
 
+> ### 📌 Update (August 2026): three follow-up experiments, one of which contradicts this report
+>
+> **Every benchmark number in this report still stands** — nothing below has been
+> re-measured or invalidated. What changed is one *explanation*, plus two new
+> pieces of information. Summary:
+>
+> 1. **The root-cause explanation in this report was tested and NOT supported.**
+>    This report attributes the large-instance gap to an insufficient sampling
+>    budget. That was a hypothesis, never tested. Running active learning for 5
+>    rounds on each large instance grew the corpus ~10x and improved R² on all
+>    three — yet the optimality gap improved on only 1 of 3 and worsened on 2.
+>    See the update box in [§Root Cause](#root-cause-of-the-hybrid-ml-ga-large-instance-gap).
+> 2. **R² is a misleading metric in this setting.** Random Forest scores R²=0.998
+>    on cap41 while its MAPE on the same predictions is 521,100%, because Big-M
+>    penalty values dominate the variance R² normalizes against. The R² figures
+>    in this report are correctly computed but do not mean what they appear to.
+> 3. **Random Forest is a poor surrogate — but replacing it changes nothing.**
+>    Gradient Boosting is the only one of four tested whose worst-case MAPE stays
+>    bounded (5.5% vs. RF's 948,600%) across all 40 instances, and it is ~60x
+>    faster at inference. Yet re-running the entire benchmark with it produced
+>    **no significant change in any group (p=0.33 overall) and bit-identical
+>    results on 33 of 40 instances.** This revealed the study's most important
+>    finding: **the confidence-aware decision rule decouples surrogate quality
+>    from solution quality** — the surrogate can skip good candidates but can
+>    never contribute a solution the exact LP hasn't already confirmed. Its real
+>    benefit is speed, not solution quality.
+>    See [§What Would Close the Remaining Gap](#what-would-close-the-remaining-gap).
+>
+> Supporting data: `paper/active_learning_progress.json`,
+> `paper/surrogate_comparison.csv`, `paper/raw_runs_all.csv`,
+> `paper/significance_test_results.json`. Full write-up: `paper/paper.pdf`.
+>
+> A statistical significance test was also added (Wilcoxon signed-rank, 400
+> matched paired runs): the Classical GA is significantly better than the Hybrid
+> ML-GA in **every** instance-size group — though on small/medium instances the
+> difference, while significant (p=0.014), is practically negligible (mean gaps
+> 0.055% vs 0.125%, and both recover the exact optimum in their best run).
+
 ## Method
 
 For each instance:
@@ -98,19 +136,37 @@ than classical GA's (0–1.27%), reflecting the added variance from surrogate
 approximation, but remain small in absolute terms.
 
 **Surrogate fit quality, reported honestly:** across all 40 instances, the
-Random Forest surrogate's held-out R² is 0.68 or higher on 36 instances,
-reaching 0.99 on the 3 large instances. On the remaining 4 (cap61, cap62,
+Random Forest surrogate's held-out R² is 0.68 or higher on **34** instances,
+reaching 0.99 on the 3 large instances. On 4 of the remaining 6 (cap61, cap62,
 cap63, and especially cap83), R² is degenerate or strongly negative (as low as
 -3.6e10 on cap83) — traced to one or more chromosomes with extreme,
 heavily capacity-penalized costs surviving into that instance's small
 (104–130 sample) bootstrap-derived training corpus, which the model could not
-generalize from on the held-out split. This did not translate into worse final
-solutions on those 4 instances (cap83's own best-run gap is effectively 0%,
-average-run gap 0.67%, in line with its neighbors), because the
+generalize from on the held-out split. The other 2 (cap94 at 0.39, cap103 at
+0.68) are simply weak rather than degenerate fits. This did not translate into
+worse final solutions on those instances (cap83's own best-run gap is
+effectively 0%, average-run gap 0.67%, in line with its neighbors), because the
 confidence_aware decision rule only ever acts on a surrogate prediction after
 exact LP verification confirms it actually beats the current best — a bad
 surrogate fit is filtered out by that gate rather than propagating into the
 reported result.
+
+> **Correction (August 2026):** this section originally said "36 instances";
+> the correct count is 34 (cap94 at 0.39 and cap103 at 0.68 also fall below the
+> 0.68 threshold). Fixed above.
+>
+> **More important caveat, added August 2026 — R² is a misleading metric here.**
+> A later experiment (see `paper/surrogate_comparison.csv`, and §"Surrogate
+> Architecture Comparison" below) established that on the 10 instances whose
+> bootstrap corpus contains Big-M capacity penalties, the Random Forest scores
+> an apparently excellent R² (0.998 on cap41) while its **MAPE on the same
+> predictions is 521,100%**. The two metrics disagree because the penalty values
+> are orders of magnitude larger than genuine solution costs, so they dominate
+> the total sum of squares that R² normalizes against: a model can capture
+> nearly all of that penalty-driven variance — scoring a near-perfect R² — while
+> being wrong by a factor of thousands on the ordinary-cost chromosomes that
+> actually steer the search. **The R² values in this section should therefore be
+> read as a diagnostic of variance capture, not of predictive accuracy.**
 
 **Large instances (capa4/capb4/capc4, 100 facilities/1000 customers): Hybrid ML-GA
 underperforms Classical GA.** Best gaps of 9.8–18.7% vs. classical GA's
@@ -137,6 +193,47 @@ sample size can characterize well enough to guide 100 generations of
 evolutionary search to a near-optimal region. The surrogate is not failing at
 its own task (fitting the data it was given) — the sampling budget is
 insufficient for the problem scale.
+
+> ### ⚠️ Update (August 2026): this explanation was tested directly, and it does NOT hold up
+>
+> The paragraph above is a **hypothesis**, not a verified finding — it was never
+> tested when written. It has since been tested directly, and the result does not
+> support it. See §"Active Learning Experiment" below for the full numbers.
+>
+> **The test:** run the quality-gated active-learning loop (`src/active_learning.py`)
+> for 5 rounds on each of the 3 large instances, which repeatedly feeds fresh exact
+> evaluations back into the training corpus and retrains. If the sampling-budget
+> explanation were correct, enlarging the corpus should narrow the gap.
+>
+> **What actually happened:** the corpus grew **~10x** (718 → 7,342 samples on capa4)
+> and surrogate R² **improved on all three instances** — the intervention worked
+> exactly as designed on its own terms. But the optimality gap **improved on only
+> 1 of 3 instances** and got **worse on the other 2**:
+>
+> | Instance | Corpus | R² | Best gap before → after |
+> |:---|:---|:---|:---|
+> | capa4 | 718 → 7,342 | 0.9901 → 0.9976 | 18.65% → **25.59%** (worse) |
+> | capb4 | 736 → 7,056 | 0.9920 → 0.9972 | 12.08% → **8.44%** (better) |
+> | capc4 | 762 → 6,994 | 0.9926 → 0.9965 | 9.82% → **14.86%** (worse) |
+>
+> **More training data and a better-fitting surrogate did not produce better
+> optimization outcomes.** The sampling-budget explanation is therefore at best
+> incomplete. Two mechanisms plausibly account for this (neither yet separated
+> experimentally):
+>
+> 1. **The quality gate measures the wrong distribution.** The validation set is
+>    carved once from the *initial* bootstrap corpus and held fixed so R² stays
+>    comparable across rounds — correct for that stated purpose, but it means the
+>    gate rewards fit to the *initial* sampling distribution while the corpus is
+>    progressively augmented with samples from wherever the search has since
+>    traveled. A model can score better and better on the gate while getting no
+>    better — or worse — where it is actually queried.
+> 2. **R² is a weak proxy for accuracy here** (see the R² caveat above), so a gate
+>    built on R² may admit models whose MAPE has actually deteriorated.
+>
+> Both point to the same fix: the adoption criterion should use a **rolling**
+> validation set drawn from the current search distribution, scored by **MAPE
+> rather than R²**. Neither variant has been tested.
 
 ## What This Confirms
 
@@ -282,20 +379,82 @@ see Bug 3 above. That document has been corrected in place with a clear update
 note rather than silently rewritten, so the audit trail (what was believed,
 when, and why it changed) stays intact.
 
-## What Would Close the Remaining Gap (Not Implemented — Out of Scope)
+## What Would Close the Remaining Gap
 
-- Larger bootstrap sample size for the large instances specifically.
-- Active learning rounds (Phase 3 infrastructure already exists) applied to
-  the large instances, to iteratively refine the surrogate with additional
-  GA-derived samples between solve attempts.
-- Increased solve-phase generations/population for large instances, at the
-  cost of proportionally longer runtime.
-- A process-based (not thread-based) parallelism strategy for the Classical
-  GA on large instances, to restore some of the speed lost by removing the
-  ThreadPool without reintroducing the crash.
+> **Updated August 2026.** This section previously listed four ideas as
+> "Not Implemented — Out of Scope." Two of them have since been implemented and
+> tested, and the results are recorded below rather than left as speculation.
+> The status of each is now stated explicitly.
 
-These are legitimate next steps, not concealed from this report — the mentor
-should not conclude either framework is broken on large instances, only that
-their current parameter budgets are insufficient for that size class, and that
-one real solver-reliability limitation (CBC on 100-facility MILPs) exists
-independent of anything implemented in this project.
+| Idea | Status | Outcome |
+|:---|:---|:---|
+| Active learning rounds on the large instances | ✅ **TESTED** | **Did not work** — corpus grew ~10x and R² improved on all 3 instances, but the gap improved on only 1 of 3. See the update box in §Root Cause. |
+| Larger bootstrap sample for large instances | ✅ **Partly tested** (via active learning, which is exactly a corpus-enlargement mechanism) | Same negative result as above — corpus size alone is not the binding constraint. |
+| Switch surrogate to Gradient Boosting | ✅ **TESTED** | **Did not work** — no significant change in any group (p=0.33 overall); **bit-identical results on 33 of 40 instances**. This is what revealed the decoupling finding below. |
+| Increased solve-phase generations/population | ❌ Not tested | Still open, but **unlikely to help**: convergence plots (`paper/all_instances_hybrid_convergence_grid.png`) show all 40 instances converge well within their generation budget, so the search is not being cut off early. |
+| **Change the confidence-aware decision rule** | ❌ Not tested — **now the most promising lead** | The three tested ideas all failed for the same reason (see below): the decision rule decouples surrogate quality from solution quality. Allowing well-calibrated predictions to influence selection directly is the remaining route to a solution-quality gain. |
+| Process-based (not thread-based) parallelism for Classical GA | ❌ Not implemented | Still open; a throughput fix, not a solution-quality fix. |
+
+**A lead that was tested and did NOT pan out — changing the surrogate architecture.**
+A four-way comparison across all 40 instances on identical training corpora
+(`paper/surrogate_comparison.csv`) found that the Random Forest used for every
+result in this report is the **weakest** of the three tree-based options, on
+both accuracy and speed:
+
+| Architecture | Median MAPE | Worst MAPE | Instances >100% MAPE | Median speedup vs LP |
+|:---|---:|---:|---:|---:|
+| Random Forest *(used here)* | 1.41% | **948,600%** | **10 / 40** | **5.2x** |
+| Gradient Boosting | 1.20% | **5.5%** | **0 / 40** | 320x |
+| XGBoost | 1.14% | 11,974% | 2 / 40 | 262x |
+| MLP | 14.81% | 99.5% | 0 / 40 | 823x (but R² < 0 on 37/40 — unusable) |
+
+Gradient Boosting is the only architecture whose worst-case MAPE stays bounded
+across all 40 instances, and it is roughly **60x faster at inference** than the
+Random Forest — which matters, because accelerating fitness evaluation is the
+entire reason the surrogate exists.
+
+> ### ⚠️ This lead was then tested too — and it also did NOT improve results
+>
+> The obvious next step was to re-run the whole benchmark with Gradient Boosting
+> instead of Random Forest. That was done, under a strictly controlled swap:
+> identical cached bootstrap corpora, identical seeds (42–51), identical
+> pop/gen budgets. **Only the architecture changed.** Data:
+> `paper/rf_vs_gb_comparison.csv`, `paper/rf_vs_gb_tests.json`.
+>
+> | Group | Classical mean gap | RF mean gap | GB mean gap | Wilcoxon RF vs GB |
+> |:---|---:|---:|---:|---:|
+> | small/medium | 0.055% | 0.1248% | 0.1204% | p=0.066 (n.s.) |
+> | large50 | 0.390% | 1.4333% | 1.4333% | p=1.000 (n.s.) |
+> | xlarge | 10.375% | 19.593% | 19.026% | p=0.393 (n.s.) |
+> | **overall** | **0.929%** | **1.9774%** | **1.9322%** | **p=0.326 (n.s.)** |
+>
+> **No group shows a significant improvement.** And the raw per-seed costs reveal
+> why, far more clearly than the averages: **on 33 of 40 instances the two
+> architectures produce _bit-identical_ final costs on all 10 seeds.** Swapping a
+> surrogate that is wrong by a factor of thousands for one accurate to 5.5%
+> changed the returned solution on *no seed of no instance* in that majority.
+>
+> **What this means (the real finding).** Under the confidence-aware policy, the
+> incumbent best is only ever updated *after* an exact LP verification. So the
+> surrogate only decides **which candidates get exactly checked** — it can cause
+> a good candidate to be silently skipped (prediction too high), but it can never
+> contribute a solution that the exact evaluator hasn't already confirmed
+> (prediction too low gets caught by the gate). **Surrogate accuracy is therefore
+> largely decoupled from final solution quality.**
+>
+> This one mechanism explains *both* negative results in this update:
+> improving the surrogate via active learning didn't help, and replacing it with
+> a far better architecture didn't help, because **solution quality barely depends
+> on the surrogate at all.** The framework's real benefit is **speed** (fewer LP
+> calls), not solution quality. That is a genuinely useful thing to know, and it
+> says a solution-quality gain would require changing the *decision rule*, not the
+> model.
+
+**Bottom line for a reader/mentor:** neither framework is broken on large
+instances. Two explanations this report previously offered or implied have now
+been tested and *neither* was supported — the sampling budget is not the binding
+constraint, and neither is the surrogate architecture. The evidence points
+instead at the confidence-aware decision rule, which by design caps solution
+quality at that of the underlying exact-LP GA while delivering a genuine
+speed benefit. One real solver-reliability limitation (CBC on 100-facility
+MILPs) also exists, independent of anything implemented in this project.
