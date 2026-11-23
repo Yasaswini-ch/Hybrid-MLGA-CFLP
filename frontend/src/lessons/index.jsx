@@ -11,6 +11,69 @@ const median = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.fl
 const cap71 = results.instances.find((x) => x.name === "cap71");
 const sum = (a) => a.reduce((x, y) => x + y, 0);
 
+/* ============ 0. Intro ============ */
+function Card({ n, title, children, on }) {
+  return (
+    <div style={{ flex: 1, minWidth: 220, padding: 16, border: "1.5px solid var(--ink)", borderRadius: 12, boxShadow: "var(--pop)",
+      background: on ? "var(--green)" : "var(--paper-2)", transition: ".25s", transform: on ? "translateY(-4px)" : "none" }}>
+      <div style={{ fontSize: 11, color: "var(--muted)" }}>{n}</div>
+      <b style={{ fontSize: 16 }}>{title}</b>
+      <p style={{ margin: "6px 0 0" }}>{children}</p>
+    </div>
+  );
+}
+function Intro({ step }) {
+  return (
+    <div className="stage">
+      {step === 0 && (
+        <>
+          <div style={{ fontSize: 44, lineHeight: 1.1 }}>🍕</div>
+          <p style={{ fontSize: 16, maxWidth: "60ch" }}>
+            A pizza chain wants to open shops across a city. Every shop costs money to open. Every delivery costs money too.
+          </p>
+          <div className="row">
+            <Card n="TOO MANY SHOPS" title="Wasted rent">Rent adds up even for shops that are barely used.</Card>
+            <Card n="TOO FEW SHOPS" title="Costly deliveries">Drivers travel far, and each shop can only cook so much.</Card>
+          </div>
+          <div className="note">Finding the cheapest mix is hard, because the number of possible combinations is enormous.</div>
+        </>
+      )}
+      {step === 1 && (
+        <div className="row">
+          <Card n="01" title="The problem" on>Choose which locations to open so the total cost is as low as possible.</Card>
+          <Card n="02" title="The approach" on>Work like evolution: try many combinations, keep the good ones, mix them, repeat. This is a genetic algorithm.</Card>
+          <Card n="03" title="My twist" on>Checking each combination exactly is slow. A small AI model guesses the cost quickly, and the slow exact check only runs when a guess looks promising.</Card>
+        </div>
+      )}
+      {step === 2 && (
+        <>
+          <p style={{ fontSize: 16, maxWidth: "60ch" }}>
+            The program was tested on 40 standard problems from a well-known research benchmark. It finds the best known answer on most of them,
+            and this site is honest about the biggest problems, where it still struggles.
+          </p>
+          <div className="row">
+            <Card n="WORKS WELL" title="Small and medium cases">Both approaches get to the best known answer almost every time.</Card>
+            <Card n="STILL HARD" title="The largest cases">The AI-assisted version currently does worse than the plain one.</Card>
+          </div>
+        </>
+      )}
+      {step === 3 && (
+        <>
+          <p style={{ fontSize: 16 }}>Use the Next button to walk through it in order:</p>
+          <table style={{ maxWidth: 560 }}>
+            <tbody>
+              <tr><td>Lesson 2</td><td style={{ textAlign: "left" }}>Click facilities open and closed, and watch the cost change.</td></tr>
+              <tr><td>Lesson 4</td><td style={{ textAlign: "left" }}>Press Run and watch the algorithm find a better answer on its own.</td></tr>
+              <tr><td>Lesson 5</td><td style={{ textAlign: "left" }}>See where the AI speeds things up.</td></tr>
+              <tr><td>Lesson 6</td><td style={{ textAlign: "left" }}>Browse the full results if you want the numbers.</td></tr>
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ============ 1. The problem ============ */
 function Problem({ step }) {
   const [mask, setMask] = useState(allOpen());
@@ -278,6 +341,13 @@ function Limits({ step }) {
 
 export const SECTIONS = ["Foundations", "Search", "Evidence"];
 export const LESSONS = [
+  { id: "intro", sec: 0, title: "What is this project?", sub: "The idea in plain language, no numbers needed.", level: "Start here", time: 3, C: Intro,
+    steps: [
+      ["A pizza-shop puzzle", "Which shops should a pizza chain open to spend the least overall? That is the whole problem."],
+      ["Three ideas to remember", "The problem, the evolution-style approach, and the AI twist that makes it faster."],
+      ["Does it work?", "Mostly yes, and the site is upfront about where it does not."],
+      ["How to use this site", "Click Next to move through the lessons. Skip to the benchmark only if you want the numbers."],
+    ] },
   { id: "problem", sec: 0, title: "The Facility Location Problem", sub: "Which warehouses do we open, and who do they serve? Click facilities and watch the bill change.", level: "Beginner", time: 8, C: Problem,
     steps: [
       ["Meet the cast", "16 candidate facilities (squares) and 50 customers (dots): OR-Library instance cap71. Map positions are schematic."],
