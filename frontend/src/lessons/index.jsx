@@ -27,45 +27,45 @@ function Intro({ step }) {
     <div className="stage">
       {step === 0 && (
         <>
-          <div style={{ fontSize: 44, lineHeight: 1.1 }}>🍕</div>
-          <p style={{ fontSize: 16, maxWidth: "60ch" }}>
-            A pizza chain wants to open shops across a city. Every shop costs money to open. Every delivery costs money too.
+          <p style={{ fontSize: 16, maxWidth: "62ch" }}>
+            A supply chain must decide which candidate facilities (warehouses or distribution centres) to open, and which open facility serves each customer.
+            Every facility has a fixed opening cost and a limited capacity, and every shipment has a transportation cost.
           </p>
           <div className="row">
-            <Card n="TOO MANY SHOPS" title="Wasted rent">Rent adds up even for shops that are barely used.</Card>
-            <Card n="TOO FEW SHOPS" title="Costly deliveries">Drivers travel far, and each shop can only cook so much.</Card>
+            <Card n="OPEN TOO MANY" title="High fixed cost">Opening cost is paid even for facilities that are barely used.</Card>
+            <Card n="OPEN TOO FEW" title="High transport cost">Customers are served from farther away, and capacity limits can make the plan infeasible.</Card>
           </div>
-          <div className="note">Finding the cheapest mix is hard, because the number of possible combinations is enormous.</div>
+          <div className="note">This is the Capacitated Facility Location Problem (CFLP). It is NP-hard: the number of possible facility configurations grows exponentially with the number of candidate sites.</div>
         </>
       )}
       {step === 1 && (
         <div className="row">
-          <Card n="01" title="The problem" on>Choose which locations to open so the total cost is as low as possible.</Card>
-          <Card n="02" title="The approach" on>Work like evolution: try many combinations, keep the good ones, mix them, repeat. This is a genetic algorithm.</Card>
-          <Card n="03" title="My twist" on>Checking each combination exactly is slow. A small AI model guesses the cost quickly, and the slow exact check only runs when a guess looks promising.</Card>
+          <Card n="01" title="Problem" on>Choose the set of open facilities that minimizes total cost: fixed opening costs plus transportation cost, subject to capacity and demand constraints.</Card>
+          <Card n="02" title="Method" on>A genetic algorithm searches over open/closed configurations using selection, crossover and mutation.</Card>
+          <Card n="03" title="Contribution" on>A machine-learning surrogate model predicts the cost of a configuration, so the expensive exact evaluation is run only for promising candidates.</Card>
         </div>
       )}
       {step === 2 && (
         <>
-          <p style={{ fontSize: 16, maxWidth: "60ch" }}>
-            The program was tested on 40 standard problems from a well-known research benchmark. It finds the best known answer on most of them,
-            and this site is honest about the biggest problems, where it still struggles.
+          <p style={{ fontSize: 16, maxWidth: "62ch" }}>
+            Both solvers were evaluated on the 40 instances of Beasley's OR-Library, a standard benchmark for this problem, and compared against exact MILP optima where available.
           </p>
           <div className="row">
-            <Card n="WORKS WELL" title="Small and medium cases">Both approaches get to the best known answer almost every time.</Card>
-            <Card n="STILL HARD" title="The largest cases">The AI-assisted version currently does worse than the plain one.</Card>
+            <Card n="STRENGTH" title="Small and medium instances">Both approaches reach the best known solution in nearly all runs.</Card>
+            <Card n="LIMITATION" title="Largest instances">On the 100-facility, 1000-customer instances the hybrid currently underperforms the classical GA.</Card>
           </div>
         </>
       )}
       {step === 3 && (
         <>
-          <p style={{ fontSize: 16 }}>Use the Next button to walk through it in order:</p>
-          <table style={{ maxWidth: 560 }}>
+          <p style={{ fontSize: 16 }}>Suggested reading order:</p>
+          <table style={{ maxWidth: 620 }}>
             <tbody>
-              <tr><td>Lesson 2</td><td style={{ textAlign: "left" }}>Click facilities open and closed, and watch the cost change.</td></tr>
-              <tr><td>Lesson 4</td><td style={{ textAlign: "left" }}>Press Run and watch the algorithm find a better answer on its own.</td></tr>
-              <tr><td>Lesson 5</td><td style={{ textAlign: "left" }}>See where the AI speeds things up.</td></tr>
-              <tr><td>Lesson 6</td><td style={{ textAlign: "left" }}>Browse the full results if you want the numbers.</td></tr>
+              <tr><td>Lesson 2</td><td style={{ textAlign: "left" }}>Problem formulation: toggle facilities and observe the cost trade-off.</td></tr>
+              <tr><td>Lesson 3</td><td style={{ textAlign: "left" }}>Baseline methods: greedy heuristic and exact MILP.</td></tr>
+              <tr><td>Lesson 4</td><td style={{ textAlign: "left" }}>Classical genetic algorithm, with a live run on cap71.</td></tr>
+              <tr><td>Lesson 5</td><td style={{ textAlign: "left" }}>Hybrid ML-GA: the surrogate-assisted pipeline.</td></tr>
+              <tr><td>Lessons 6-7</td><td style={{ textAlign: "left" }}>Full benchmark results and limitations.</td></tr>
             </tbody>
           </table>
         </>
@@ -341,12 +341,12 @@ function Limits({ step }) {
 
 export const SECTIONS = ["Foundations", "Search", "Evidence"];
 export const LESSONS = [
-  { id: "intro", sec: 0, title: "What is this project?", sub: "The idea in plain language, no numbers needed.", level: "Start here", time: 3, C: Intro,
+  { id: "intro", sec: 0, title: "Research Overview", sub: "Problem, method and findings of the Hybrid ML-GA solver for the Capacitated Facility Location Problem.", level: "Overview", time: 3, C: Intro,
     steps: [
-      ["A pizza-shop puzzle", "Which shops should a pizza chain open to spend the least overall? That is the whole problem."],
-      ["Three ideas to remember", "The problem, the evolution-style approach, and the AI twist that makes it faster."],
-      ["Does it work?", "Mostly yes, and the site is upfront about where it does not."],
-      ["How to use this site", "Click Next to move through the lessons. Skip to the benchmark only if you want the numbers."],
+      ["Problem statement", "Select which facilities to open and assign customers to them at minimum total cost, under capacity constraints."],
+      ["Problem, method, contribution", "A genetic algorithm explores facility configurations; a learned surrogate reduces the number of exact cost evaluations."],
+      ["Evaluation", "Benchmarked on 40 OR-Library instances. Results are strong on small and medium instances, with a documented limitation on the largest."],
+      ["Reading guide", "Proceed with Next, or jump to the benchmark lesson for the full results."],
     ] },
   { id: "problem", sec: 0, title: "The Facility Location Problem", sub: "Which warehouses do we open, and who do they serve? Click facilities and watch the bill change.", level: "Beginner", time: 8, C: Problem,
     steps: [
