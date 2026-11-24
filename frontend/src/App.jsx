@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { LESSONS, SECTIONS } from "./lessons/index.jsx";
 import { Caption } from "./components.jsx";
+import Hero from "./hero.jsx";
 
 const read = () => location.hash.replace("#/", "") || LESSONS[0].id;
 const useHash = () => {
@@ -49,6 +50,7 @@ export default function App() {
           ))}
         </nav>
         <main className="main">
+          {L.id === "intro" && <Hero />}
           <div className="crumb">{String(L.sec + 1).padStart(2, "0")}. {SECTIONS[L.sec]} / Section {idx + 1} of {LESSONS.length}</div>
           <h1>{L.title}</h1>
           <div className="pills"><span className="pill g">{SECTIONS[L.sec]}</span><span className="pill v">{L.steps.length} parts</span></div>
