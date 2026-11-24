@@ -57,21 +57,6 @@ function Intro({ step }) {
           </div>
         </>
       )}
-      {step === 3 && (
-        <>
-          <p style={{ fontSize: 16 }}>Suggested reading order:</p>
-          <table style={{ maxWidth: 620 }}>
-            <tbody>
-              <tr><td>Section 2</td><td style={{ textAlign: "left" }}>Problem formulation: toggle facilities and observe the cost trade-off.</td></tr>
-              <tr><td>Section 3</td><td style={{ textAlign: "left" }}>Baseline methods: greedy heuristic and exact MILP.</td></tr>
-              <tr><td>Section 4</td><td style={{ textAlign: "left" }}>Classical genetic algorithm, with a live run on cap71.</td></tr>
-              <tr><td>Section 5</td><td style={{ textAlign: "left" }}>The surrogate model: inputs, training and accuracy.</td></tr>
-              <tr><td>Section 6</td><td style={{ textAlign: "left" }}>Hybrid ML-GA: the surrogate-assisted pipeline.</td></tr>
-              <tr><td>Sections 7-8</td><td style={{ textAlign: "left" }}>Full benchmark results and limitations.</td></tr>
-            </tbody>
-          </table>
-        </>
-      )}
     </div>
   );
 }
@@ -461,7 +446,6 @@ export const LESSONS = [
       ["Problem statement", "Select which facilities to open and assign customers to them at minimum total cost, under capacity constraints."],
       ["Problem, method, contribution", "A genetic algorithm explores facility configurations; a learned surrogate reduces the number of exact cost evaluations."],
       ["Evaluation", "Benchmarked on 40 OR-Library instances. Results are strong on small and medium instances, with a documented limitation on the largest."],
-      ["Reading guide", "Proceed with Next, or jump to the benchmark section for the full results."],
     ] },
   { id: "problem", sec: 0, title: "Problem Formulation", sub: "Which warehouses do we open, and who do they serve? Click facilities and watch the bill change.", level: "Beginner", time: 8, C: Problem,
     steps: [
