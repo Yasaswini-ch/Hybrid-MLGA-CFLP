@@ -23,19 +23,16 @@ const TOTAL_TICKS = STAGES.reduce((a, s) => a + s.n, 0);
 export default function Hero() {
   const hist = useMemo(() => runGA({ pop: 30, gens: 40 }), []);
   const [tick, setTick] = useState(0);
-  const [playing, setPlaying] = useState(true);
 
   useEffect(() => {
-    if (!playing) return;
     const id = setInterval(() => setTick((v) => (v + 1) % TOTAL_TICKS), 150);
     return () => clearInterval(id);
-  }, [playing]);
+  }, []);
 
   let stage = 0, t = tick;
   while (t >= STAGES[stage].n) { t -= STAGES[stage].n; stage++; }
   const S = STAGES[stage];
   const frac = t / (S.n - 1);
-  const jump = (i) => { setPlaying(false); setTick(STAGES.slice(0, i).reduce((a, s) => a + s.n, 0) + Math.floor(STAGES[i].n * 0.75)); };
 
   const final = hist[hist.length - 1];
   const mask = stage === 0 ? Array(D.m).fill(1) : stage === 1 ? hist[Math.min(t, hist.length - 1)].bestChrom : final.bestChrom;
@@ -53,11 +50,11 @@ export default function Hero() {
           Hybrid ML-GA combines a genetic algorithm with a learned surrogate model to solve the Capacitated Facility Location Problem, and is benchmarked on 40 standard instances.
         </p>
 
-        <div className="hero-steps" role="tablist">
+        <div className="hero-steps" aria-hidden="true">
           {STAGES.map((s, i) => (
-            <button key={s.k} role="tab" aria-selected={i === stage} className={"hero-step" + (i === stage ? " on" : i < stage ? " done" : "")} onClick={() => jump(i)}>
+            <div key={s.k} className={"hero-step" + (i === stage ? " on" : i < stage ? " done" : "")}>
               <span className="hero-num">{i + 1}</span>{s.k}
-            </button>
+            </div>
           ))}
         </div>
 
@@ -67,8 +64,7 @@ export default function Hero() {
         </div>
 
         <div className="hero-ctl">
-          <button className="btn" onClick={() => setPlaying(!playing)}>{playing ? "Pause" : "Play"}</button>
-          <div className="hero-prog"><div style={{ width: ((tick + 1) / TOTAL_TICKS) * 100 + "%" }} /></div>
+                    <div className="hero-prog"><div style={{ width: ((tick + 1) / TOTAL_TICKS) * 100 + "%" }} /></div>
         </div>
       </div>
 

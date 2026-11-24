@@ -104,3 +104,5 @@ svg text{font-family:var(--font)}
 .hero-split div:first-child{color:#fff}
 .hero-foot{font-size:11px;color:var(--muted);margin-top:8px}
 @media(max-width:900px){.hero{grid-template-columns:1fr;padding:16px}.hero h2{font-size:22px}}
+
+.hero{user-select:none;cursor:default}.hero-step{cursor:default}.hero-ctl{margin-top:14px}.hero-map *{cursor:default}
