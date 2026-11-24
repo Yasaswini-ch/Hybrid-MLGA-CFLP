@@ -71,20 +71,19 @@ function Problem({ step }) {
         <Chip label="Facilities" value={D.m} />
         <Chip label="Customers" value={D.n} />
         <Chip label="Open" value={sum(mask)} />
-        <Chip label="Fixed cost" value={step >= 1 ? money(ev.fixedCost) : "—"} />
-        <Chip label="Transport" value={step >= 3 ? money(ev.transport) : "—"} />
-        <Chip label="Total" value={step >= 3 ? money(ev.total) : "—"} hot />
+        <Chip label="Fixed cost" value={money(ev.fixedCost)} />
+        <Chip label="Transport" value={money(ev.transport)} />
+        <Chip label="Total" value={ev.feasible ? money(ev.total) : "infeasible"} hot />
       </div>
       <div className="stage">
         <FacilityMap
           open={mask}
           flows={ev.flows}
-          showFlows={step >= 3}
-          used={step >= 2 ? ev.used : null}
-          onToggle={step >= 2 ? (i) => setMask((m) => m.map((v, k) => (k === i ? 1 - v : v))) : undefined}
-          focus={step === 1 ? 0 : null}
+          showFlows
+          used={ev.used}
+          onToggle={(i) => setMask((m) => m.map((v, k) => (k === i ? 1 - v : v)))}
         />
-        {step >= 2 && (
+        {(
           <div style={{ marginTop: 8 }}>
             {ev.feasible ? <span className="tag g">feasible</span> : <span className="tag o">infeasible: {Math.round(ev.unmet)} demand unserved</span>}
             <span style={{ marginLeft: 10, color: "var(--muted)", fontSize: 12 }}>Click facilities to open or close them. Known optimal cost: {money(D.optimal)}</span>
@@ -449,7 +448,7 @@ export const LESSONS = [
     ] },
   { id: "problem", sec: 0, title: "Problem Formulation", sub: "Which warehouses do we open, and who do they serve? Click facilities and watch the bill change.", level: "Beginner", time: 8, C: Problem,
     steps: [
-      ["Meet the cast", "16 candidate facilities (squares) and 50 customers (dots): OR-Library instance cap71. Map positions are schematic."],
+      ["Meet the cast", "16 candidate facilities (squares) and 50 customers (dots): OR-Library instance cap71. Click any square to open or close that facility and watch the costs update. Map positions are schematic."],
       ["Opening costs money", "Each facility has a fixed opening cost. Open too many and you overspend."],
       ["Open and close", "Toggle facilities. Capacity limits how much each can serve; the fill level shows inside each square."],
       ["Transport adds up", "Every customer is served from open facilities. Total = fixed + transport. The goal is to minimize it."],
