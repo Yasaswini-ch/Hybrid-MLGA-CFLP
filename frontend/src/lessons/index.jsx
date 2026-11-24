@@ -62,12 +62,12 @@ function Intro({ step }) {
           <p style={{ fontSize: 16 }}>Suggested reading order:</p>
           <table style={{ maxWidth: 620 }}>
             <tbody>
-              <tr><td>Lesson 2</td><td style={{ textAlign: "left" }}>Problem formulation: toggle facilities and observe the cost trade-off.</td></tr>
-              <tr><td>Lesson 3</td><td style={{ textAlign: "left" }}>Baseline methods: greedy heuristic and exact MILP.</td></tr>
-              <tr><td>Lesson 4</td><td style={{ textAlign: "left" }}>Classical genetic algorithm, with a live run on cap71.</td></tr>
-              <tr><td>Lesson 5</td><td style={{ textAlign: "left" }}>The surrogate model: inputs, training and accuracy.</td></tr>
-              <tr><td>Lesson 6</td><td style={{ textAlign: "left" }}>Hybrid ML-GA: the surrogate-assisted pipeline.</td></tr>
-              <tr><td>Lessons 7-8</td><td style={{ textAlign: "left" }}>Full benchmark results and limitations.</td></tr>
+              <tr><td>Section 2</td><td style={{ textAlign: "left" }}>Problem formulation: toggle facilities and observe the cost trade-off.</td></tr>
+              <tr><td>Section 3</td><td style={{ textAlign: "left" }}>Baseline methods: greedy heuristic and exact MILP.</td></tr>
+              <tr><td>Section 4</td><td style={{ textAlign: "left" }}>Classical genetic algorithm, with a live run on cap71.</td></tr>
+              <tr><td>Section 5</td><td style={{ textAlign: "left" }}>The surrogate model: inputs, training and accuracy.</td></tr>
+              <tr><td>Section 6</td><td style={{ textAlign: "left" }}>Hybrid ML-GA: the surrogate-assisted pipeline.</td></tr>
+              <tr><td>Sections 7-8</td><td style={{ textAlign: "left" }}>Full benchmark results and limitations.</td></tr>
             </tbody>
           </table>
         </>
@@ -447,30 +447,30 @@ function Limits({ step }) {
       {step === 2 && (
         <>
           <p>On these instances CBC cannot prove optimality, so a "gap" is measured against a best-known value rather than a certified optimum.</p>
-          <div className="note">Honest summary: the surrogate cuts exact evaluations, but on the largest instances the Hybrid currently trails the Classical GA.</div>
+          <div className="note">Summary: the surrogate cuts exact evaluations, but on the largest instances the Hybrid currently trails the Classical GA.</div>
         </>
       )}
     </div>
   );
 }
 
-export const SECTIONS = ["Foundations", "Search", "Evidence"];
+export const SECTIONS = ["Background", "Methodology", "Results"];
 export const LESSONS = [
   { id: "intro", sec: 0, title: "Research Overview", sub: "Problem, method and findings of the Hybrid ML-GA solver for the Capacitated Facility Location Problem.", level: "Overview", time: 3, C: Intro,
     steps: [
       ["Problem statement", "Select which facilities to open and assign customers to them at minimum total cost, under capacity constraints."],
       ["Problem, method, contribution", "A genetic algorithm explores facility configurations; a learned surrogate reduces the number of exact cost evaluations."],
       ["Evaluation", "Benchmarked on 40 OR-Library instances. Results are strong on small and medium instances, with a documented limitation on the largest."],
-      ["Reading guide", "Proceed with Next, or jump to the benchmark lesson for the full results."],
+      ["Reading guide", "Proceed with Next, or jump to the benchmark section for the full results."],
     ] },
-  { id: "problem", sec: 0, title: "The Facility Location Problem", sub: "Which warehouses do we open, and who do they serve? Click facilities and watch the bill change.", level: "Beginner", time: 8, C: Problem,
+  { id: "problem", sec: 0, title: "Problem Formulation", sub: "Which warehouses do we open, and who do they serve? Click facilities and watch the bill change.", level: "Beginner", time: 8, C: Problem,
     steps: [
       ["Meet the cast", "16 candidate facilities (squares) and 50 customers (dots): OR-Library instance cap71. Map positions are schematic."],
       ["Opening costs money", "Each facility has a fixed opening cost. Open too many and you overspend."],
       ["Open and close", "Toggle facilities. Capacity limits how much each can serve; the fill level shows inside each square."],
       ["Transport adds up", "Every customer is served from open facilities. Total = fixed + transport. The goal is to minimize it."],
     ] },
-  { id: "baselines", sec: 0, title: "Baselines: Greedy vs MILP", sub: "A quick heuristic and an exact solver, and why neither is enough.", level: "Beginner", time: 6, C: Baselines,
+  { id: "baselines", sec: 0, title: "Baseline Methods", sub: "A quick heuristic and an exact solver, and why neither is enough.", level: "Beginner", time: 6, C: Baselines,
     steps: [
       ["Start with nothing", "Greedy ranks facilities by fixed cost per unit of capacity."],
       ["Open the cheapest few", "It opens facilities in that order..."],
@@ -503,8 +503,8 @@ export const LESSONS = [
       ["Verify only promising ones", "The exact LP runs only when a prediction suggests a new best solution."],
       ["Quality-gated retraining", "A retrained model replaces the old one only if it is better."],
     ] },
-  { id: "bench", sec: 2, title: "40-Instance Benchmark", sub: "Sort, select and compare Classical GA and Hybrid ML-GA on every OR-Library instance.", level: "Results", time: 10, C: Benchmarks,
+  { id: "bench", sec: 2, title: "Benchmark Results", sub: "Sort, select and compare Classical GA and Hybrid ML-GA on every OR-Library instance.", level: "Results", time: 10, C: Benchmarks,
     steps: [["Explore", "Click a column to sort and a row for details. Red marks where Hybrid is worse than Classical."]] },
-  { id: "limits", sec: 2, title: "Honest Limits", sub: "What the results do and do not show.", level: "Results", time: 4, C: Limits,
+  { id: "limits", sec: 2, title: "Limitations", sub: "What the results do and do not show.", level: "Results", time: 4, C: Limits,
     steps: [["Where it works", "Small and medium instances."], ["Where it struggles", "The largest instances."], ["How to read the gaps", "Caveat about unproven optima."]] },
 ];

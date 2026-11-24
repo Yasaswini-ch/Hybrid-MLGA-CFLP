@@ -32,9 +32,9 @@ export default function App() {
     <div className="app">
       <header className="top">
         <button className="icon-btn" onClick={() => setMenu(!menu)} aria-label="menu">☰</button>
-        <div className="brand">▦ CFLP <span className="hl">Explained</span></div>
+        <div className="brand">▦ Hybrid <span className="hl">ML-GA</span></div>
         <div className="grow" />
-        <div className="credit">Hybrid ML-GA<br />research walkthrough</div>
+        <div className="credit">Capacitated Facility<br />Location Problem</div>
         <button className="icon-btn" onClick={() => setDark(!dark)} aria-label="theme">{dark ? "☀" : "☾"}</button>
       </header>
       <div className="layout">
@@ -49,9 +49,9 @@ export default function App() {
           ))}
         </nav>
         <main className="main">
-          <div className="crumb">{String(L.sec + 1).padStart(2, "0")}. {SECTIONS[L.sec]} / Lesson {idx + 1} of {LESSONS.length}</div>
+          <div className="crumb">{String(L.sec + 1).padStart(2, "0")}. {SECTIONS[L.sec]} / Section {idx + 1} of {LESSONS.length}</div>
           <h1>{L.title}</h1>
-          <div className="pills"><span className="pill">◷ {L.time} min</span><span className="pill g">{L.level}</span><span className="pill v">{L.steps.length} steps</span></div>
+          <div className="pills"><span className="pill g">{SECTIONS[L.sec]}</span><span className="pill v">{L.steps.length} parts</span></div>
           <p className="sub">{L.sub}</p>
           <L.C step={step} />
           <Caption title={t}>{d}</Caption>
@@ -64,7 +64,7 @@ export default function App() {
         <div className="in">
           <button className="btn" onClick={back} disabled={idx === 0 && step === 0}>← Back</button>
           <button className="btn next" onClick={go} disabled={last && !next}>
-            <span>{last ? (next ? "Next lesson: " + next.title : "Done") : "Next: " + L.steps[step + 1][0]}</span><span>→</span>
+            <span>{last ? (next ? "Next section: " + next.title : "Done") : "Next: " + L.steps[step + 1][0]}</span><span>→</span>
           </button>
         </div>
       </div>

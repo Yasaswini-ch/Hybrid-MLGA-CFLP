@@ -1,6 +1,6 @@
-# CFLP Explained (frontend)
+# Hybrid ML-GA for CFLP (project site)
 
-Interactive, lesson-style walkthrough of the Hybrid ML-GA research. Static site (Vite + React), no backend.
+Interactive write-up of the Hybrid ML-GA research: problem, methods, surrogate model and benchmark results. Static site (Vite + React), no backend.
 
 ```
 cd frontend
@@ -18,5 +18,5 @@ python frontend/scripts/export_data.py
 
 ## Notes
 - The facility map is schematic: OR-Library instances have no coordinates.
-- The GA demo in lesson 3 runs in the browser on cap71 using a fast greedy assignment as fitness; the Python/DEAP solver solves an LP per individual.
+- The GA demo in section 4 runs in the browser on cap71 using a fast greedy assignment as fitness; the Python/DEAP solver solves an LP per individual.
 - Benchmark tables come straight from `docs/*.csv`.
