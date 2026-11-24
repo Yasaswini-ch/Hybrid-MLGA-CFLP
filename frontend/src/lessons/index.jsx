@@ -3,6 +3,7 @@ import { D, evaluate, greedyOrder, runGA } from "../lib/cflp.js";
 import { money, pct, secs } from "../lib/fmt.js";
 import { FacilityMap, LineChart, Chip, Chromosome } from "../components.jsx";
 import results from "../data/results.json";
+import sur from "../data/surrogate.json";
 
 const allOpen = () => Array(D.m).fill(1);
 const noneOpen = () => Array(D.m).fill(0);
@@ -64,8 +65,9 @@ function Intro({ step }) {
               <tr><td>Lesson 2</td><td style={{ textAlign: "left" }}>Problem formulation: toggle facilities and observe the cost trade-off.</td></tr>
               <tr><td>Lesson 3</td><td style={{ textAlign: "left" }}>Baseline methods: greedy heuristic and exact MILP.</td></tr>
               <tr><td>Lesson 4</td><td style={{ textAlign: "left" }}>Classical genetic algorithm, with a live run on cap71.</td></tr>
-              <tr><td>Lesson 5</td><td style={{ textAlign: "left" }}>Hybrid ML-GA: the surrogate-assisted pipeline.</td></tr>
-              <tr><td>Lessons 6-7</td><td style={{ textAlign: "left" }}>Full benchmark results and limitations.</td></tr>
+              <tr><td>Lesson 5</td><td style={{ textAlign: "left" }}>The surrogate model: inputs, training and accuracy.</td></tr>
+              <tr><td>Lesson 6</td><td style={{ textAlign: "left" }}>Hybrid ML-GA: the surrogate-assisted pipeline.</td></tr>
+              <tr><td>Lessons 7-8</td><td style={{ textAlign: "left" }}>Full benchmark results and limitations.</td></tr>
             </tbody>
           </table>
         </>
@@ -202,6 +204,119 @@ function ClassicalGA({ step }) {
           <input type="range" min="0" max="40" value={g} onChange={(e) => { setPlay(false); setG(+e.target.value); }} style={{ flex: 1 }} />
         </div>
         <div className="note">Live demo: a small GA running in your browser on cap71 with a fast greedy assignment as fitness. The real Python/DEAP solver solves an LP for every individual.</div>
+      </div>
+    </>
+  );
+}
+
+/* ============ 3b. Surrogate model ============ */
+const totalDemand = D.dem.reduce((a, b) => a + b, 0);
+function featuresOf(mask) {
+  const open = mask.reduce((a, b) => a + b, 0);
+  const cap = mask.reduce((a, b, i) => a + b * D.cap[i], 0);
+  const fixed = mask.reduce((a, b, i) => a + b * D.fixed[i], 0);
+  return { open, cap, slack: (cap - totalDemand) / totalDemand, avgFixed: open ? fixed / open : 0 };
+}
+function Scatter({ w = 440, h = 330 }) {
+  const pad = { l: 66, r: 14, t: 12, b: 40 };
+  const all = sur.points.flat();
+  let lo = Math.min(...all), hi = Math.max(...all);
+  const sp = hi - lo; lo -= sp * 0.05; hi += sp * 0.05;
+  const X = (v) => pad.l + ((v - lo) / (hi - lo)) * (w - pad.l - pad.r);
+  const Y = (v) => h - pad.b - ((v - lo) / (hi - lo)) * (h - pad.t - pad.b);
+  const ticks = [0, 0.5, 1].map((t) => lo + t * (hi - lo));
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%">
+      {ticks.map((t, i) => (
+        <g key={i}>
+          <line x1={pad.l} x2={w - pad.r} y1={Y(t)} y2={Y(t)} stroke="var(--line)" />
+          <text x={pad.l - 8} y={Y(t) + 4} textAnchor="end" fontSize="10" fill="var(--muted)">{(t / 1000).toFixed(0)}k</text>
+          <text x={X(t)} y={h - pad.b + 16} textAnchor="middle" fontSize="10" fill="var(--muted)">{(t / 1000).toFixed(0)}k</text>
+        </g>
+      ))}
+      <line x1={X(lo)} y1={Y(lo)} x2={X(hi)} y2={Y(hi)} stroke="var(--rust)" strokeDasharray="5 4" strokeWidth="1.5" />
+      {sur.points.map(([t, p], i) => <circle key={i} cx={X(t)} cy={Y(p)} r="5" fill="var(--green-2)" stroke="var(--ink)" strokeWidth="1.2" />)}
+      <text x={(w + pad.l) / 2} y={h - 6} textAnchor="middle" fontSize="11" fill="var(--muted)">exact cost (LP)</text>
+      <text transform={`translate(14,${(h - pad.b) / 2}) rotate(-90)`} textAnchor="middle" fontSize="11" fill="var(--muted)">surrogate prediction</text>
+    </svg>
+  );
+}
+const isBit = (n) => /^F\d+$/.test(n);
+function Surrogate({ step }) {
+  const [mask, setMask] = useState(maskOf([0, 2, 4, 6, 8, 10, 12]));
+  const f = useMemo(() => featuresOf(mask), [mask]);
+  const maxImp = sur.importance[0].v;
+  return (
+    <>
+      <div className="chips">
+        <Chip label="Model" value="Random forest" />
+        <Chip label="Trees" value={sur.trees} />
+        <Chip label="Input features" value={sur.features} />
+        <Chip label="Held-out R²" value={sur.r2.toFixed(3)} hot />
+      </div>
+      <div className="stage">
+        {step === 0 && (
+          <>
+            <p style={{ maxWidth: "64ch" }}>
+              A candidate solution is turned into <b>{D.m} open/closed bits plus 4 summary features</b>. Toggle facilities to see the summary features change.
+            </p>
+            <Chromosome label="Bits" bits={mask} />
+            <div className="row" style={{ marginTop: 6 }}>
+              {mask.map((b, i) => (
+                <button key={i} className="tag" style={{ background: b ? "var(--green)" : "var(--paper-2)" }} onClick={() => setMask((m) => m.map((v, k) => (k === i ? 1 - v : v)))}>F{i + 1}</button>
+              ))}
+            </div>
+            <div className="chips">
+              <Chip label="Open count" value={f.open} />
+              <Chip label="Total capacity" value={Math.round(f.cap).toLocaleString("en-US")} />
+              <Chip label="Slack ratio" value={f.slack.toFixed(3)} />
+              <Chip label="Avg fixed cost" value={money(f.avgFixed)} />
+            </div>
+          </>
+        )}
+        {step === 1 && (
+          <div className="row">
+            <Card n="STEP 1" title="Bootstrap with exact solves" on>A short exact-evaluation GA runs first. Every configuration it scores with the LP is recorded together with its true cost.</Card>
+            <Card n="STEP 2" title={`${sur.samples} unique samples`} on>Duplicates are removed, leaving {sur.samples} labelled configurations for cap71.</Card>
+            <Card n="STEP 3" title={`${sur.train} train / ${sur.test} test`} on>80/20 split. A random forest of {sur.trees} trees learns configuration to total cost.</Card>
+          </div>
+        )}
+        {step === 2 && (
+          <div className="row">
+            <div className="panel" style={{ flex: 1.4 }}><Scatter /></div>
+            <div className="panel">
+              <div className="chips">
+                <Chip label="R²" value={sur.r2.toFixed(4)} hot />
+                <Chip label="MAPE" value={pct(sur.mape, 2)} />
+                <Chip label="MAE" value={money(sur.mae)} />
+              </div>
+              <p style={{ color: "var(--muted)", fontSize: 12 }}>{sur.test} held-out configurations. Points on the dashed line are perfect predictions.</p>
+            </div>
+          </div>
+        )}
+        {step === 3 && (
+          <>
+            <p>Which inputs the forest relies on most (top 8 of {sur.features}):</p>
+            {sur.importance.slice(0, 8).map((d) => (
+              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 10, margin: "5px 0" }}>
+                <span style={{ width: 110, fontSize: 12 }}>{d.name}</span>
+                <div style={{ height: 16, width: (d.v / maxImp) * 60 + "%", background: isBit(d.name) ? "var(--green-2)" : "var(--violet)", border: "1.5px solid var(--ink)", borderRadius: 6 }} />
+                <span style={{ fontSize: 12, color: "var(--muted)" }}>{(d.v * 100).toFixed(1)}%</span>
+              </div>
+            ))}
+            <div className="note">Purple bars are the engineered summary features, green bars are individual facility bits.</div>
+          </>
+        )}
+        {step === 4 && (
+          <>
+            <div className="row">
+              <Card n="PREDICT" title="Score every individual">The surrogate predicts the cost of the whole population in one batch.</Card>
+              <Card n="IF PREDICTED < BEST SO FAR" title="Verify with exact LP" on>The candidate might be a new best, so its true cost is computed.</Card>
+              <Card n="OTHERWISE" title="Trust the prediction">It is not a threat to the best solution, so the cheap prediction is used as its fitness.</Card>
+            </div>
+            <div className="note">The reported solution is always re-checked with the exact LP at the end. Predictions that are not verified only steer the search; they do not appear in the final reported cost.</div>
+          </>
+        )}
       </div>
     </>
   );
@@ -371,11 +486,19 @@ export const LESSONS = [
       ["Mutation", "Random bit flips keep the population diverse."],
       ["Run it", "Press Run to evolve 40 generations live. Elitism keeps the best solution."],
     ] },
+  { id: "surrogate", sec: 1, title: "The Surrogate Model", sub: "What the machine-learning model sees, how it is trained, and how far it can be trusted.", level: "Advanced", time: 8, C: Surrogate,
+    steps: [
+      ["Inputs", "Each configuration becomes the open/closed bits plus four engineered features: open count, total capacity, slack ratio and average fixed cost."],
+      ["Training data", "Labels come from exact LP solves made during a short bootstrap GA, so the model needs no pre-existing dataset."],
+      ["Accuracy", "On held-out configurations the predictions track the exact costs closely, but not perfectly. That is why verification exists."],
+      ["What it learned", "Capacity-related summary features and a few individual facilities carry most of the signal."],
+      ["When it is trusted", "Exact verification is triggered only when a prediction beats the best cost so far, and the final answer is always verified."],
+    ] },
   { id: "hybrid", sec: 1, title: "Hybrid ML-GA", sub: "Replace most expensive fitness evaluations with a learned surrogate model.", level: "Advanced", time: 12, C: Hybrid,
     steps: [
-      ["Bootstrap its own data", "No pre-trained model needed: run exact evaluations on random individuals first."],
+      ["Bootstrap its own data", "No pre-trained model needed: a short exact-evaluation GA runs first, and every configuration it scores becomes training data."],
       ["Train the surrogate", "A regressor learns bit-string to cost (R² is shown above for cap71; it varies by instance)."],
-      ["Warm-up generations", "Early generations stay exact until the model is trustworthy."],
+      ["Warm-up generations", "The first 15% of generations stay fully exact before the surrogate takes over."],
       ["Predict, don't solve", "The surrogate scores the whole population almost instantly."],
       ["Verify only promising ones", "The exact LP runs only when a prediction suggests a new best solution."],
       ["Quality-gated retraining", "A retrained model replaces the old one only if it is better."],
